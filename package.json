@@ -1,0 +1,33 @@
+{
+  "name": "native-collections-transformer-typescript",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/marthinus-engelbrecht/native-collections-transformer-typescript.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/marthinus-engelbrecht/native-collections-transformer-typescript/issues"
+  },
+  "homepage": "https://github.com/marthinus-engelbrecht/native-collections-transformer-typescript#readme",
+  "devDependencies": {
+    "@types/chai": "^4.1.3",
+    "@types/mocha": "^5.2.0",
+    "chai": "^4.1.2",
+    "chia": "0.0.1",
+    "mocha": "^5.2.0",
+    "ts-node": "^6.0.5"
+  },
+  "dependencies": {
+    "ts-simple-ast": "^11.2.0"
+  }
+}
