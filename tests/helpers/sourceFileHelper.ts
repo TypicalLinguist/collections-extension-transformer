@@ -15,6 +15,7 @@ export {writeCodeWith, createVirtualSourceFile}
 function createVirtualSourceFile(text: string): SourceFile {
     const project: Project = new Project();
     project.getFileSystem();
+    project.createWriter()
 
     return project.createSourceFile('./temp/sourceFile.ts', {
             bodyText: text
