@@ -1,7 +1,7 @@
-import {transformArrayLiteralToNewArrayExpression} from "../../source/main/transformTypescript";
 import {SourceFile} from "ts-simple-ast";
-import {createVirtualSourceFile, writeCodeWith} from "../helpers/sourceFileHelper";
-import {arrayLiteral, newArrayExpression} from "../helpers/codeMocks";
+import {createVirtualSourceFile, writeCodeWith} from "../../helpers/sourceFileHelper";
+import {arrayLiteral, newArrayExpression} from "../../helpers/codeMocks";
+import {transformArrayLiteralToNewArrayExpression} from "../../../source/main/transformScripts/transformArrayLiteralToNewArrayExpression";
 
 UnitUnderTest(`transformArrayLiteralToNewArrayExpression`, function () {
     Given(`a source file that contains an array literal`, function () {

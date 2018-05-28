@@ -1,7 +1,7 @@
 import {default as Project, SourceFile} from "ts-simple-ast";
-import {createVirtualSourceFile} from "../helpers/sourceFileHelper";
-import {addImportForNativeCollectionExtension} from "../../source/main/transformTypescript";
-import {TypescriptWriter} from "../helpers/TypescriptWriter";
+import {createVirtualSourceFile} from "../../helpers/sourceFileHelper";
+import {TypescriptWriter} from "../../helpers/TypescriptWriter";
+import {addImportForNativeCollectionExtension} from "../../../source/main/transformScripts/addImportForNativeCollectionExtension";
 
 UnitUnderTest(`addImportForNativeCollectionExtension`, function () {
     Given(`a source file`, function () {

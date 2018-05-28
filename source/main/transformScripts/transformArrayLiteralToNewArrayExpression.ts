@@ -1,8 +1,6 @@
 import {ArrayLiteralExpression, SourceFile} from "ts-simple-ast";
 
-export {transformArrayLiteralToNewArrayExpression, addImportForNativeCollectionExtension}
-
-function transformArrayLiteralToNewArrayExpression(sourceFile: SourceFile) {
+export function transformArrayLiteralToNewArrayExpression(sourceFile: SourceFile) {
     let variableDeclarations = sourceFile.getVariableDeclarations();
 
     variableDeclarations.forEach(variableDeclaration => {
@@ -23,14 +21,5 @@ function transformArrayLiteralToNewArrayExpression(sourceFile: SourceFile) {
         }
     });
 
-    return sourceFile
-}
-
-function addImportForNativeCollectionExtension(sourceFile: SourceFile) {
-    sourceFile.insertImportDeclaration(0, {
-        moduleSpecifier: 'native-collection-extension',
-        namedImports: ['Array']
-    });
-    
     return sourceFile
 }

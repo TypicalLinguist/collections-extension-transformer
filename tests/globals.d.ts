@@ -1,4 +1,3 @@
-// import 'ts-simple-ast';
 import ExpectStatic = Chai.ExpectStatic;
 
 declare let expect: ExpectStatic;
@@ -10,4 +9,5 @@ declare namespace NodeJS {
         expect: ExpectStatic
     }
 }
+
 
