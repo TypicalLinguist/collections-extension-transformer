@@ -1,6 +1,8 @@
 import {ArrayLiteralExpression, SourceFile} from "ts-simple-ast";
 
-export function transformTypescript(sourceFile: SourceFile): SourceFile {
+export {transformArrayLiteralToNewArrayExpression}
+
+function transformArrayLiteralToNewArrayExpression(sourceFile: SourceFile) {
     let variableDeclarations = sourceFile.getVariableDeclarations();
 
     variableDeclarations.forEach(variableDeclaration => {
@@ -21,5 +23,5 @@ export function transformTypescript(sourceFile: SourceFile): SourceFile {
         }
     });
 
-    return sourceFile;
+    return sourceFile
 }
