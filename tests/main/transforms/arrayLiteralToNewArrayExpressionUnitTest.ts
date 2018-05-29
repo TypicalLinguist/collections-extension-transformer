@@ -1,9 +1,9 @@
 import {SourceFile} from "ts-simple-ast";
-import {createVirtualSourceFile, writeCodeWith} from "../../helpers/sourceFileHelper";
+import {createVirtualSourceFile, writeCodeWith} from "../../helpers/sourceFileMockHelper";
 import {arrayLiteral, newArrayExpression} from "../../helpers/codeMocks";
-import {transformArrayLiteralToNewArrayExpression} from "../../../source/main/transformScripts/transformArrayLiteralToNewArrayExpression";
+import {arrayLiteralToNewArrayExpression} from "../../../source/main/transforms/arrayLiteralToNewArrayExpression";
 
-UnitUnderTest(`transformArrayLiteralToNewArrayExpression`, function () {
+UnitUnderTest(`arrayLiteralToNewArrayExpression`, function () {
     Given(`a source file that contains an array literal`, function () {
         let sourceFile: SourceFile, expectedFileContent: string;
 
@@ -13,11 +13,11 @@ UnitUnderTest(`transformArrayLiteralToNewArrayExpression`, function () {
             expectedFileContent = writeCodeWith(newArrayExpression)
         });
 
-        When(`transformArrayLiteralToNewArrayExpression is executed on the source file`, function () {
+        When(`the arrayLiteralToNewArrayExpression() function is executed on the source file`, function () {
             let outputFileContent: string;
 
             beforeEach(function () {
-                outputFileContent = transformArrayLiteralToNewArrayExpression(sourceFile).getText()
+                outputFileContent = arrayLiteralToNewArrayExpression(sourceFile).getText()
             });
 
             Then(`the array literal should have been transformed to a new Array() expression`, function () {
@@ -35,11 +35,11 @@ UnitUnderTest(`transformArrayLiteralToNewArrayExpression`, function () {
             expectedFileContent = writeCodeWith(newArrayExpression)
         });
 
-        When(`transformArrayLiteralToNewArrayExpression is executed on the source file`, function () {
+        When(`the arrayLiteralToNewArrayExpression() function is executed on the source file`, function () {
             let outputFileContent: string;
 
             beforeEach(function () {
-                outputFileContent = transformArrayLiteralToNewArrayExpression(sourceFile).getText()
+                outputFileContent = arrayLiteralToNewArrayExpression(sourceFile).getText()
             });
 
             Then(`the source file should remain the same`, function () {

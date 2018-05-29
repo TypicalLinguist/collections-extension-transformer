@@ -1,9 +1,9 @@
 import {default as Project, SourceFile} from "ts-simple-ast";
-import {createVirtualSourceFile} from "../../helpers/sourceFileHelper";
+import {createVirtualSourceFile} from "../../helpers/sourceFileMockHelper";
 import {TypescriptWriter} from "../../helpers/TypescriptWriter";
-import {addImportForNativeCollectionExtension} from "../../../source/main/transformScripts/addImportForNativeCollectionExtension";
+import {collectionsExtensionImport} from "../../../source/main/transforms/collectionsExtensionImport";
 
-UnitUnderTest(`addImportForNativeCollectionExtension`, function () {
+UnitUnderTest(`collectionsExtensionImport`, function () {
     Given(`a source file`, function () {
         let sourceFile: SourceFile, expectedFileContent: string;
 
@@ -16,7 +16,7 @@ UnitUnderTest(`addImportForNativeCollectionExtension`, function () {
             expectedFileContent = typescriptWriter.writeImportDeclaration(
                 {
                     namedImports: ['Array'],
-                    moduleSpecifier: 'native-collection-extension'
+                    moduleSpecifier: '@typical-linguist/collections-extension'
                 }
             )
                 .blankLine()
@@ -24,14 +24,14 @@ UnitUnderTest(`addImportForNativeCollectionExtension`, function () {
                 .toString()
         });
 
-        When(`when addImportForNativeCollectionExtension is executed`, function () {
+        When(`the collectionsExtensionImport() function is executed`, function () {
             let outputFileContent: string;
 
             beforeEach(function () {
-                outputFileContent = addImportForNativeCollectionExtension(sourceFile).getText()
+                outputFileContent = collectionsExtensionImport(sourceFile).getText()
             });
 
-            Then(`the 'native-collection-extension' module import should be added`, function () {
+            Then(`the '@typical-linguist/collections-extension' module import should be added`, function () {
                 expect(outputFileContent).to.equal(expectedFileContent)
             })
         })

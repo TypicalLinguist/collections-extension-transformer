@@ -8,9 +8,7 @@
     "noImplicitReturns": true,
     "skipLibCheck": true,
     "sourceMap": true,
-    "declaration": true,
-    "plugins": [
-    ]
+    "declaration": true
   },
   "include": [
     "source/**/*.ts",

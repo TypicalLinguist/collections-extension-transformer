@@ -1,8 +1,8 @@
 import {SourceFile} from "ts-simple-ast";
 
-export function addImportForNativeCollectionExtension(sourceFile: SourceFile) {
+export function collectionsExtensionImport(sourceFile: SourceFile) {
     sourceFile.insertImportDeclaration(0, {
-        moduleSpecifier: 'native-collection-extension',
+        moduleSpecifier: '@typical-linguist/collections-extension',
         namedImports: ['Array']
     });
 
