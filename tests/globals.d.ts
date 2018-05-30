@@ -8,6 +8,10 @@ declare namespace NodeJS {
         sinon: sinon
         expect: ExpectStatic
     }
+
+    export interface Process {
+        exit: (exitCode?: number) => void
+    }
 }
 
 declare namespace Chai {
@@ -19,5 +23,7 @@ declare namespace Chai {
         savedToDirectory(dir: string): Assertion
 
         compiledToJavascript(): Assertion
+
+        throwErrorWithMessage(expectedErrorMessage: string): Assertion
     }
 }

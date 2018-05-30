@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "target": "es2017",
+    "target": "ES2017",
     "module": "commonjs",
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
@@ -8,15 +8,17 @@
     "noImplicitReturns": true,
     "skipLibCheck": true,
     "sourceMap": true,
-    "declaration": true
+    "declaration": true,
+    "outDir": "build",
+    "listEmittedFiles": true,
+    "diagnostics": true,
+    "rootDir": "source"
   },
   "include": [
-    "source/**/*.ts",
-    "tests/**/*.ts"
+    "**/*.ts"
   ],
   "exclude": [
-    "plaform",
-    "www",
-    "examples"
+    "node_modules",
+    ".sandbox"
   ]
 }

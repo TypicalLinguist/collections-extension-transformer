@@ -1,5 +1,5 @@
 import {SourceFile} from "ts-simple-ast";
-import {createVirtualSourceFile, writeCodeWith} from "../../helpers/sourceFileMockHelper";
+import {createVirtualSourceFileWithContent, writeCodeWith} from "../../helpers/sourceFileMockHelper";
 import {arrayLiteral, newArrayExpression} from "../../helpers/codeMocks";
 import {arrayLiteralToNewArrayExpression} from "../../../source/main/transforms/arrayLiteralToNewArrayExpression";
 
@@ -9,7 +9,7 @@ UnitUnderTest(`arrayLiteralToNewArrayExpression`, function () {
 
         beforeEach(function () {
             const codeWithArrayLiteral = writeCodeWith(arrayLiteral);
-            sourceFile = createVirtualSourceFile(codeWithArrayLiteral);
+            sourceFile = createVirtualSourceFileWithContent(codeWithArrayLiteral);
             expectedFileContent = writeCodeWith(newArrayExpression)
         });
 
@@ -31,7 +31,7 @@ UnitUnderTest(`arrayLiteralToNewArrayExpression`, function () {
 
         beforeEach(function () {
             const codeWithArrayLiteral = writeCodeWith(newArrayExpression);
-            sourceFile = createVirtualSourceFile(codeWithArrayLiteral);
+            sourceFile = createVirtualSourceFileWithContent(codeWithArrayLiteral);
             expectedFileContent = writeCodeWith(newArrayExpression)
         });
 

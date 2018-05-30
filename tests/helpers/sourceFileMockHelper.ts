@@ -10,31 +10,36 @@ const carInterfaceStructure = {
     }]
 };
 
-export {writeCodeWith, createVirtualSourceFile}
+export {
+    writeCodeWith,
+    createVirtualSourceFileWithContent,
+    createVirtualSourceFiles
+}
 
-function createVirtualSourceFile(text: string): SourceFile {
+function createVirtualSourceFileWithContent(content: string): SourceFile {
     const project: Project = new Project();
-    project.getFileSystem();
-    project.createWriter();
 
     return project.createSourceFile('./temp/sourceFile.ts', {
-            bodyText: text
+            bodyText: content
         }
     );
 }
 
-export function createFakeFiles(project: Project, sourceFileCount: number): SourceFile[] {
-    project.getFileSystem();
-
+function createVirtualSourceFiles(project: Project, sourceFileCount: number, withErrors: boolean = false): SourceFile[] {
     let sourceFiles: SourceFile[] = [];
-
     for (let i = 0; i < sourceFileCount; i++) {
-        const sourceFile = project.createSourceFile(`./myfiles/file${i}.ts`, `let content${i}`)
+        const sourceFile = createSourceFile(project, i, withErrors);
         sourceFiles.push(sourceFile)
     }
 
     return sourceFiles
 }
+
+function createSourceFile(project: Project, i: number, withErrors: boolean) {
+    const letKeyword = withErrors ? '' : 'let';
+    return project.createSourceFile(`./myfiles/otherFiles/file${i}.ts`, `${letKeyword} content${i}`);
+}
+
 
 function writeCodeWith(expression: ExpressionUnderTest) {
     const typescriptWriter = new TypescriptWriter();

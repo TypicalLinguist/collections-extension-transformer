@@ -1,5 +1,5 @@
 import {default as Project, SourceFile} from "ts-simple-ast";
-import {createVirtualSourceFile} from "../../helpers/sourceFileMockHelper";
+import {createVirtualSourceFileWithContent} from "../../helpers/sourceFileMockHelper";
 import {TypescriptWriter} from "../../helpers/TypescriptWriter";
 import {collectionsExtensionImport} from "../../../source/main/transforms/collectionsExtensionImport";
 
@@ -9,7 +9,7 @@ UnitUnderTest(`collectionsExtensionImport`, function () {
 
         beforeEach(function () {
             const startContent = `let a = 'a variable declaration'`;
-            sourceFile = createVirtualSourceFile(startContent);
+            sourceFile = createVirtualSourceFileWithContent(startContent);
             const project = (new Project());
             const typescriptWriter = new TypescriptWriter();
 
