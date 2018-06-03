@@ -5,12 +5,12 @@ declare namespace NodeJS {
     import ExpectStatic = Chai.ExpectStatic;
 
     export interface Global {
-        sinon: sinon
-        expect: ExpectStatic
+        sinon: sinon;
+        expect: ExpectStatic;
     }
 
     export interface Process {
-        exit: (exitCode?: number) => void
+        exit: (exitCode?: number) => void;
     }
 }
 
@@ -20,10 +20,12 @@ declare namespace Chai {
     interface Assertion extends LanguageChains, NumericComparison, TypeComparison {
         calledInOrderWith(sourceFiles: SourceFile[]): Assertion;
 
-        savedToDirectory(dir: string): Assertion
+        savedToDirectory(dir: string): Assertion;
 
-        compiledToJavascript(): Assertion
+        compiledToJavascript(): Assertion;
 
-        throwErrorWithMessage(expectedErrorMessage: string): Assertion
+        throwErrorWithMessage(expectedErrorMessage: string): Assertion;
+
+        filesToEqual(expectedFiles: Map<string, string>): Assertion;
     }
 }

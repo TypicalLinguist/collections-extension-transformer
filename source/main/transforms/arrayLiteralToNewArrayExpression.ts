@@ -1,33 +1,41 @@
-import {ArrayLiteralExpression, CodeBlockWriter, Expression, SourceFile} from "ts-simple-ast";
+import {ArrayLiteralExpression, CodeBlockWriter, Expression, Node, SourceFile} from "ts-simple-ast";
 
-export function arrayLiteralToNewArrayExpression(sourceFile: SourceFile) {
-    let variableDeclarations = sourceFile.getVariableDeclarations();
+export function arrayLiteralToNewArrayExpression(sourceFile: SourceFile): SourceFile {
+    visit(sourceFile.getChildren());
 
-    variableDeclarations.forEach(variableDeclaration => {
-        let initializer = variableDeclaration.getInitializer();
-
-        if (initializer instanceof ArrayLiteralExpression) {
-            replaceWithNewArrayExpression(initializer as ArrayLiteralExpression);
-        }
-    });
-
-    return sourceFile
+    return sourceFile;
 }
 
 function getTypeNames(elements: Expression[]): string[] {
-    return elements.map(element => element.getType().getText());
+    return elements.map((element) => {
+        return element.getType().getBaseTypeOfLiteralType().getText();
+    });
 }
 
 function getElementsText(elements: Expression[]): string[] {
-    return elements.map(element => element.getText());
+    return elements.map((element) => element.getText());
 }
 
-function writeCode(codeWriter: CodeBlockWriter, elements: Expression[]) {
+function writeCode(codeWriter: CodeBlockWriter, elements: Expression[]): void {
     const typesNames = getTypeNames(elements);
     const elementsText = getElementsText(elements);
-    codeWriter.write(`new Array<${typesNames.join(' | ')}>(${elementsText.join(', ')})`)
+    const uniqueTypeNames = Array.from(new Set<string>(typesNames));
+
+    codeWriter.write(`new Array<${uniqueTypeNames.join(" | ")}>(${elementsText.join(", ")})`);
 }
 
-function replaceWithNewArrayExpression(arrayLiteral: ArrayLiteralExpression) {
-    arrayLiteral.replaceWithText(writer => writeCode(writer, arrayLiteral.getElements()));
+function replaceWithNewArrayExpression(arrayLiteral: ArrayLiteralExpression): Node {
+    return arrayLiteral.replaceWithText((writer) => writeCode(writer, arrayLiteral.getElements()));
+}
+
+function visit(nodes: Node[]): void {
+    nodes.forEach((child) => {
+        const children = child.getChildren();
+
+        visit(children);
+
+        if (child instanceof ArrayLiteralExpression) {
+            replaceWithNewArrayExpression(child as ArrayLiteralExpression);
+        }
+    });
 }

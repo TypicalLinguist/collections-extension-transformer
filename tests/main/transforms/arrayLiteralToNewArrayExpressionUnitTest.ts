@@ -1,52 +1,57 @@
-import {SourceFile} from "ts-simple-ast";
-import {createVirtualSourceFileWithContent, writeCodeWith} from "../../helpers/sourceFileMockHelper";
-import {arrayLiteral, newArrayExpression} from "../../helpers/codeMocks";
+import {TransformerSignature} from "../../../source/main/main";
 import {arrayLiteralToNewArrayExpression} from "../../../source/main/transforms/arrayLiteralToNewArrayExpression";
+import {ProjectMock} from "../../helpers/ProjectMock";
+import {Sandbox} from "../../helpers/Sandbox";
+import {createVirtualSourceFileWithContent} from "../../helpers/sourceFileMockHelper";
+import {TestingData} from "../../helpers/TestingData";
+import {TestSuites} from "../../helpers/TestSuites";
 
-UnitUnderTest(`arrayLiteralToNewArrayExpression`, function () {
-    Given(`a source file that contains an array literal`, function () {
-        let sourceFile: SourceFile, expectedFileContent: string;
+UnitUnderTest(`arrayLiteralToNewArrayExpression`, function(): void {
+    Given(`source files that contain an array literal`, async function(): Promise<any> {
+        const testingData = new TestingData(TestSuites.ArrayLiteralToNewArrayExpression);
+        const projectMock = new ProjectMock();
+        const sandbox = new Sandbox(testingData, projectMock);
+        let expectedTypescriptFiles: Map<string, string>;
+        let initialTypescriptFiles: Map<string, string>;
 
-        beforeEach(function () {
-            const codeWithArrayLiteral = writeCodeWith(arrayLiteral);
-            sourceFile = createVirtualSourceFileWithContent(codeWithArrayLiteral);
-            expectedFileContent = writeCodeWith(newArrayExpression)
+        beforeEach(async function(): Promise<any> {
+            this.timeout(25000);
+            await sandbox.setup();
+            expectedTypescriptFiles = await testingData.getExpectedTypescriptFiles();
+            initialTypescriptFiles = await testingData.getInitialTypescriptFiles();
         });
 
-        When(`the arrayLiteralToNewArrayExpression() function is executed on the source file`, function () {
-            let outputFileContent: string;
+        When(`the arrayLiteralToNewArrayExpression() function is executed on each file`, function(): void {
+            let actualFiles: Map<string, string>;
 
-            beforeEach(function () {
-                outputFileContent = arrayLiteralToNewArrayExpression(sourceFile).getText()
+            beforeEach(async function(): Promise<any> {
+                actualFiles = executeTransformOnEverySourceFile(
+                    initialTypescriptFiles,
+                    arrayLiteralToNewArrayExpression,
+                );
             });
 
-            Then(`the array literal should have been transformed to a new Array() expression`, function () {
-                expect(outputFileContent).to.equal(expectedFileContent)
-            });
-        })
+            Then(`all the array literals should have been transformed to a new Array() expression`,
+                function(): void {
+                    expect(actualFiles).files.to.equal(expectedTypescriptFiles);
+                },
+            );
+        });
+
+        afterEach(async function(): Promise<any> {
+            await sandbox.tearDown();
+        });
     });
-
-    Given(`a source file that does not contain an array literal`, function () {
-        let sourceFile: SourceFile, expectedFileContent: string;
-
-        beforeEach(function () {
-            const codeWithArrayLiteral = writeCodeWith(newArrayExpression);
-            sourceFile = createVirtualSourceFileWithContent(codeWithArrayLiteral);
-            expectedFileContent = writeCodeWith(newArrayExpression)
-        });
-
-        When(`the arrayLiteralToNewArrayExpression() function is executed on the source file`, function () {
-            let outputFileContent: string;
-
-            beforeEach(function () {
-                outputFileContent = arrayLiteralToNewArrayExpression(sourceFile).getText()
-            });
-
-            Then(`the source file should remain the same`, function () {
-                expect(outputFileContent).to.equal(expectedFileContent)
-            });
-        })
-    })
 });
 
+export function executeTransformOnEverySourceFile(
+    initialTypescriptFiles: Map<string, string>,
+    transformFunc: TransformerSignature): Map<string, string> {
+    const actualFiles: Map<string, string> = new Map<string, string>();
+    initialTypescriptFiles.forEach((fileContent, fileName) => {
+        const sourceFile = createVirtualSourceFileWithContent(fileName, fileContent);
+        actualFiles.set(fileName, transformFunc(sourceFile).getText());
+    });
 
+    return actualFiles;
+}
