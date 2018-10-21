@@ -1,30 +1,50 @@
 import {Identifier, NewExpression, Node, SourceFile} from "ts-simple-ast";
 
+enum CollectionType {
+    ARRAY = "Array",
+    MAP = "Map",
+}
+
 export function collectionsExtensionImport(sourceFile: SourceFile): SourceFile {
-    if (hasNewArrayExpression(sourceFile)) {
+
+    const hasArray = hasNewCollectionExpression(sourceFile, CollectionType.ARRAY);
+    const hasMap = hasNewCollectionExpression(sourceFile, CollectionType.MAP);
+    const namedImports: string[] = [];
+
+    if (hasArray) {
+        namedImports.push(CollectionType.ARRAY);
+    }
+
+    if (hasMap) {
+        namedImports.push(CollectionType.MAP);
+    }
+
+    if (namedImports.length > 0) {
         sourceFile.insertImportDeclaration(0, {
             moduleSpecifier: "@typical-linguist/collections-extension",
-            namedImports: ["Array"],
+            namedImports,
         });
     }
 
     return sourceFile;
 }
 
-function hasNewArrayExpression(node: Node): boolean {
+function hasNewCollectionExpression(node: Node, collectionType: CollectionType): boolean {
     if (node instanceof NewExpression && node.getExpression() instanceof Identifier) {
-        return node.getExpression().getText() === "Array";
-    } else {
-        let result = false;
-
-        for (const child of node.getChildren()) {
-            result = result || hasNewArrayExpression(child);
-
-            if (result) {
-                break;
-            }
+        if (node.getExpression().getText() === collectionType) {
+            return true;
         }
-
-        return result;
     }
+
+    let result;
+
+    for (const child of node.getChildren()) {
+        result = hasNewCollectionExpression(child, collectionType);
+
+        if (result) {
+            break;
+        }
+    }
+
+    return result;
 }
