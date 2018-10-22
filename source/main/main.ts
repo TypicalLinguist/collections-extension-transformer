@@ -4,8 +4,9 @@ import {firstPass} from "./firstPass";
 import {secondPass} from "./secondPass";
 import {arrayLiteralToNewArrayExpression} from "./transforms/arrayLiteralToNewArrayExpression";
 import {collectionsExtensionImport} from "./transforms/collectionsExtensionImport";
+import {removeSync} from "fs-extra-promise";
 
-export default function(program: ts.Program)
+export default function(program: ts.Program, removeDir?: (dir: string) => void)
     : (ctx: ts.TransformationContext) => (sourceFile: ts.SourceFile) => ts.SourceFile {
 
     const project = new Project();
@@ -17,7 +18,7 @@ export default function(program: ts.Program)
     main(project, [
         arrayLiteralToNewArrayExpression,
         collectionsExtensionImport,
-    ], `${program.getCurrentDirectory()}/.typicalLinguist`);
+    ], removeDir ? removeDir : removeSync, `${program.getCurrentDirectory()}/.typicalLinguist`);
 
     return (ctx: ts.TransformationContext) => {
         return (sourceFile: ts.SourceFile) => {
@@ -26,11 +27,11 @@ export default function(program: ts.Program)
     };
 }
 
-export function main(project: Project, transforms: TransformerSignature[],
+export function main(project: Project, transforms: TransformerSignature[], removeDir: (dir: string) => void,
                      tempDirectory: string = `${process.cwd()}/.typicalLinguist`): SourceFile[] {
 
     const hasInitialErrors = firstPass(project, transforms, tempDirectory);
-    const sourceFiles = secondPass(tempDirectory, hasInitialErrors);
+    const sourceFiles = secondPass(tempDirectory, hasInitialErrors, removeDir);
 
     if (hasInitialErrors) {
         process.exit(1);

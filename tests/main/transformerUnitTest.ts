@@ -7,6 +7,10 @@ import {TestSuites} from "../helpers/TestSuites";
 
 UnitUnderTest(`transformer`, () => {
     Given(`A existing program`, () => {
+        function fakeRemoveSync(dir: string): void {
+            "empty";
+        }
+
         const testingData = new TestingData(TestSuites.TransformAll);
         const projectMock = new ProjectMock();
         const sandbox = new Sandbox(testingData, projectMock);
@@ -20,7 +24,7 @@ UnitUnderTest(`transformer`, () => {
             expectedTypescriptFiles = await testingData.getExpectedTypescriptFiles();
             initialTypescriptFiles = await testingData.getInitialTypescriptFiles();
             fakeProgram = await projectMock.getProgram();
-            transformer(fakeProgram.compilerObject);
+            transformer(fakeProgram.compilerObject, fakeRemoveSync);
         });
 
         When(`the transformer function is executed on that program`, () => {

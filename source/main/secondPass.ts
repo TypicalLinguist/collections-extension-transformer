@@ -3,7 +3,7 @@ import {checkForErrors} from "./common";
 
 export {secondPass, createErrorMessageFromTemplate};
 
-function secondPass(tempDirectory: string, hasInitialErrorMessages: boolean): SourceFile[] {
+function secondPass(tempDirectory: string, hasInitialErrorMessages: boolean, removeDir: (dir: string) => void): SourceFile[] {
     const compiler = new Project();
 
     const sourceFiles = compiler.addExistingSourceFiles(`${tempDirectory}/**/*.ts`);
@@ -19,6 +19,8 @@ function secondPass(tempDirectory: string, hasInitialErrorMessages: boolean): So
     }
 
     const emitResult = compiler.emit();
+
+    removeDir(tempDirectory);
 
     return sourceFiles;
 }

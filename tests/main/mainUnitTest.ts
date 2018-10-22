@@ -12,6 +12,10 @@ UnitUnderTest(`main`, function(): void {
     let tempDirectory: string;
     let sandbox: Sandbox;
 
+    function fakeRemoveSync(dir: string): void {
+        "empty";
+    }
+
     beforeEach(async function(): Promise<any> {
         sandbox = new Sandbox();
         await sandbox.setup();
@@ -20,7 +24,6 @@ UnitUnderTest(`main`, function(): void {
 
     Given(`a project that is free of syntactical and semantic errors that needs its code transformed`,
         function(): void {
-
             const sourceFileCount: number = 9;
             let sourceFiles: SourceFile[];
             let project: Project;
@@ -31,12 +34,14 @@ UnitUnderTest(`main`, function(): void {
             });
 
             When(`the main() function is executed with that project`, function(): void {
+                const removeDirSpy = sinon.spy(fakeRemoveSync);
+
                 const transforms = createTransformSpies();
 
                 let returnedSourceFiles: SourceFile[];
 
                 beforeEach(function(): void {
-                    returnedSourceFiles = main(project, transforms);
+                    returnedSourceFiles = main(project, transforms, removeDirSpy);
                     reduceStringOutput(returnedSourceFiles);
                 });
 
@@ -57,9 +62,17 @@ UnitUnderTest(`main`, function(): void {
                         expect(returnedSourceFiles).to.be.compiledToJavascript();
                     },
                 );
+
+                Then(`the temporary directory should be removed`,
+                    function(): void {
+                        expect(removeDirSpy).to.have.been.calledWith(tempDirectory);
+                    },
+                );
             });
 
             And(`the transformations introduces syntactical or semantic errors`, function(): void {
+                const removeDirSpy = sinon.spy(fakeRemoveSync);
+
                 const transforms = [
                     breakingTransformFunction,
                 ];
@@ -97,13 +110,23 @@ UnitUnderTest(`main`, function(): void {
                 const errorMessage = createErrorMessageFromTemplate(expectedDiagnosticErrors);
 
                 When(`the main() function is executed with that project`, function(): void {
+                    function executeMain(): void {
+                        main(project, transforms, fakeRemoveSync);
+                    }
+
                     Then(`then an error with the message: \n\t\t${errorMessage} \n\t\t should be thrown`,
                         function(): void {
-                            function executeMain(): void {
-                                main(project, transforms);
-                            }
-
                             expect(executeMain).to.throwErrorWithMessage(errorMessage);
+                        },
+                    );
+
+                    Then(`the temporary directory should not be removed`,
+                        function(): void {
+                            try {
+                                executeMain();
+                            } catch (e) {
+                                expect(removeDirSpy).to.not.have.been.calledWith(tempDirectory);
+                            }
                         },
                     );
                 });
@@ -123,8 +146,14 @@ UnitUnderTest(`main`, function(): void {
         });
 
         When(`the main() function is executed with that project`, function(): void {
+            const removeDirSpy = sinon.spy(fakeRemoveSync);
+
+            function executeMain(): void {
+                main(project, transforms, fakeRemoveSync);
+            }
+
             Then(`the process should exit with code 1`, function(): void {
-                main(project, transforms);
+                main(project, transforms, fakeRemoveSync);
 
                 expect(process.exitCode).to.equal(1);
             });
@@ -162,12 +191,18 @@ UnitUnderTest(`main`, function(): void {
             const errorMessage = createErrorMessageFromTemplate(expectedDiagnosticErrors);
 
             Then(`an error with the message: \n\t\t${errorMessage} \n\t\t should not be thrown`, function(): void {
-                function executeMain(): void {
-                    main(project, transforms);
-                }
-
                 expect(executeMain).to.not.throwErrorWithMessage(errorMessage);
             });
+
+            Then(`the temporary directory should not be removed`,
+                function(): void {
+                    try {
+                        executeMain();
+                    } catch (e) {
+                        expect(removeDirSpy).to.not.have.been.calledWith(tempDirectory);
+                    }
+                },
+            );
         });
     });
 
