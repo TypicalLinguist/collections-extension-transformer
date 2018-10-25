@@ -10,7 +10,13 @@
     "sourceMap": true,
     "declaration": true,
     "outDir": "build",
-    "rootDir": "source"
+    "rootDir": "source",
+    "paths": {
+      "*": [
+        "declarations/*"
+      ]
+    },
+    "baseUrl": "."
   },
   "include": [
     "**/*.ts"

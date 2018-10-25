@@ -1,5 +1,5 @@
 import {spawn} from "child-process-promise";
-import {Program} from "ts-simple-ast";
+import {CompilerOptions, Program} from "ts-simple-ast";
 import recursiveReadDir = require("recursive-readdir");
 
 export class ProjectMock {
@@ -58,6 +58,15 @@ export class ProjectMock {
                                 }
 
                                 return workingDir;
+                            },
+                            getCompilerOptions(): CompilerOptions {
+                                if (!rootFileNames) {
+                                    throw new Error("Please run setup to instantiate the program mock first");
+                                }
+
+                                return {
+                                    outDir: `${workingDir}/build`,
+                                };
                             },
                         };
                     },

@@ -5,12 +5,15 @@ import {arrayLiteralToNewArrayExpression} from "../../source/main/transforms/arr
 import {collectionsExtensionImport} from "../../source/main/transforms/collectionsExtensionImport";
 import {Sandbox} from "../helpers/Sandbox";
 import {createVirtualSourceFiles} from "../helpers/sourceFileMockHelper";
+import {getJavascriptPaths} from "../config/mocha-bootstrap";
 
 UnitUnderTest(`main`, function(): void {
-    this.timeout(10000);
+    this.timeout(50000);
 
     let tempDirectory: string;
     let sandbox: Sandbox;
+    let outDir: string;
+    let project: Project;
 
     function fakeRemoveSync(dir: string): void {
         "empty";
@@ -20,16 +23,20 @@ UnitUnderTest(`main`, function(): void {
         sandbox = new Sandbox();
         await sandbox.setup();
         tempDirectory = `${sandbox.path}/.typicalLinguist`;
+        outDir = `${sandbox.path}/build`;
+        project = new Project({
+            compilerOptions: {
+                outDir,
+            },
+        });
     });
 
     Given(`a project that is free of syntactical and semantic errors that needs its code transformed`,
         function(): void {
             const sourceFileCount: number = 9;
             let sourceFiles: SourceFile[];
-            let project: Project;
 
             beforeEach(async function(): Promise<any> {
-                project = new Project();
                 sourceFiles = createVirtualSourceFiles(project, sourceFileCount);
             });
 
@@ -40,8 +47,9 @@ UnitUnderTest(`main`, function(): void {
 
                 let returnedSourceFiles: SourceFile[];
 
-                beforeEach(function(): void {
-                    returnedSourceFiles = main(project, transforms, removeDirSpy);
+                beforeEach(async function(): Promise<void> {
+                    returnedSourceFiles = await main(project, transforms, removeDirSpy);
+                    returnedSourceFiles = returnedSourceFiles.filter((file) => file.getBaseName() !== "lib.d.ts");
                     reduceStringOutput(returnedSourceFiles);
                 });
 
@@ -62,6 +70,21 @@ UnitUnderTest(`main`, function(): void {
                         expect(returnedSourceFiles).to.be.compiledToJavascript();
                     },
                 );
+
+                And(`the source files have been compiled to javascript`, function(): void {
+                    let relativeFilePaths: string[];
+                    beforeEach(function(): void {
+                        relativeFilePaths = getJavascriptPaths(returnedSourceFiles)
+                            .map((path) => path.split(`${tempDirectory}/`)[1]);
+                    });
+
+                    Then(`the compiled javascript should be moved to the "outDir"`,
+                        function(): void {
+                            expect(relativeFilePaths)
+                                .files.to.be.copied.from.source(tempDirectory).to.destination(outDir);
+                        },
+                    );
+                });
 
                 Then(`the temporary directory should be removed`,
                     function(): void {
@@ -110,20 +133,20 @@ UnitUnderTest(`main`, function(): void {
                 const errorMessage = createErrorMessageFromTemplate(expectedDiagnosticErrors);
 
                 When(`the main() function is executed with that project`, function(): void {
-                    function executeMain(): void {
-                        main(project, transforms, fakeRemoveSync);
-                    }
-
                     Then(`then an error with the message: \n\t\t${errorMessage} \n\t\t should be thrown`,
-                        function(): void {
-                            expect(executeMain).to.throwErrorWithMessage(errorMessage);
+                        async function(): Promise<void> {
+                            try {
+                                await main(project, transforms, fakeRemoveSync);
+                            } catch (e) {
+                                expect(e.message).to.equal(errorMessage);
+                            }
                         },
                     );
 
                     Then(`the temporary directory should not be removed`,
-                        function(): void {
+                        async function(): Promise<void> {
                             try {
-                                executeMain();
+                                await main(project, transforms, fakeRemoveSync);
                             } catch (e) {
                                 expect(removeDirSpy).to.not.have.been.calledWith(tempDirectory);
                             }
@@ -138,22 +161,16 @@ UnitUnderTest(`main`, function(): void {
 
         const sourceFileCount: number = 1;
         let sourceFiles: SourceFile[];
-        let project: Project;
 
         beforeEach(async function(): Promise<any> {
-            project = new Project();
             sourceFiles = createVirtualSourceFiles(project, sourceFileCount, true);
         });
 
         When(`the main() function is executed with that project`, function(): void {
             const removeDirSpy = sinon.spy(fakeRemoveSync);
 
-            function executeMain(): void {
-                main(project, transforms, fakeRemoveSync);
-            }
-
-            Then(`the process should exit with code 1`, function(): void {
-                main(project, transforms, fakeRemoveSync);
+            Then(`the process should exit with code 1`, async function(): Promise<void> {
+                await main(project, transforms, fakeRemoveSync);
 
                 expect(process.exitCode).to.equal(1);
             });
@@ -190,14 +207,20 @@ UnitUnderTest(`main`, function(): void {
 
             const errorMessage = createErrorMessageFromTemplate(expectedDiagnosticErrors);
 
-            Then(`an error with the message: \n\t\t${errorMessage} \n\t\t should not be thrown`, function(): void {
-                expect(executeMain).to.not.throwErrorWithMessage(errorMessage);
-            });
+            Then(`an error with the message: \n\t\t${errorMessage} \n\t\t should not be thrown`,
+                async function(): Promise<void> {
+                    try {
+                        await main(project, transforms, fakeRemoveSync);
+                    } catch (e) {
+                        expect(e.message).to.not.equal(errorMessage);
+                    }
+                },
+            );
 
             Then(`the temporary directory should not be removed`,
-                function(): void {
+                async function(): Promise<void> {
                     try {
-                        executeMain();
+                        await main(project, transforms, fakeRemoveSync);
                     } catch (e) {
                         expect(removeDirSpy).to.not.have.been.calledWith(tempDirectory);
                     }

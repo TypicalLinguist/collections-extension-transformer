@@ -1,9 +1,12 @@
-import Project, {SourceFile} from "ts-simple-ast";
+import Project, {CompilerOptions, SourceFile} from "ts-simple-ast";
 import {checkForErrors} from "./common";
+import {copyFileSync, existsSync, mkdirSync, readdirSync} from "fs";
 
 export {secondPass, createErrorMessageFromTemplate};
 
-function secondPass(tempDirectory: string, hasInitialErrorMessages: boolean, removeDir: (dir: string) => void): SourceFile[] {
+function secondPass(tempDirectory: string, hasInitialErrorMessages: boolean,
+                    removeDir: (dir: string) => void, compilerOptions: CompilerOptions): SourceFile[] {
+
     const compiler = new Project();
 
     const sourceFiles = compiler.addExistingSourceFiles(`${tempDirectory}/**/*.ts`);
@@ -19,6 +22,17 @@ function secondPass(tempDirectory: string, hasInitialErrorMessages: boolean, rem
     }
 
     const emitResult = compiler.emit();
+
+    if (!existsSync(compilerOptions.outDir)) {
+        mkdirSync(compilerOptions.outDir);
+    }
+
+    const files = readdirSync(tempDirectory);
+    const javascriptFiles = files.filter((file) => file.endsWith(".js"));
+
+    javascriptFiles.forEach((javascriptFile) => {
+        copyFileSync(`${tempDirectory}/${javascriptFile}`, `${compilerOptions.outDir}/${javascriptFile}`)
+    });
 
     removeDir(tempDirectory);
 

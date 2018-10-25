@@ -7,10 +7,6 @@ import {TestSuites} from "../helpers/TestSuites";
 
 UnitUnderTest(`transformer`, () => {
     Given(`A existing program`, () => {
-        function fakeRemoveSync(dir: string): void {
-            "empty";
-        }
-
         const testingData = new TestingData(TestSuites.TransformAll);
         const projectMock = new ProjectMock();
         const sandbox = new Sandbox(testingData, projectMock);
@@ -19,12 +15,18 @@ UnitUnderTest(`transformer`, () => {
         let fakeProgram: Program;
 
         beforeEach(async function(): Promise<any> {
-            this.timeout(25000);
+            this.timeout(50000);
             await sandbox.setup();
             expectedTypescriptFiles = await testingData.getExpectedTypescriptFiles();
             initialTypescriptFiles = await testingData.getInitialTypescriptFiles();
             fakeProgram = await projectMock.getProgram();
-            transformer(fakeProgram.compilerObject, fakeRemoveSync);
+            transformer(fakeProgram.compilerObject, {
+                removeDirFunction: function fakeRemoveSync(dir: string): void {
+                    "empty";
+                },
+            });
+
+            await delayForTransformationToFinish();
         });
 
         When(`the transformer function is executed on that program`, () => {
@@ -39,3 +41,7 @@ UnitUnderTest(`transformer`, () => {
         });
     });
 });
+
+export function delayForTransformationToFinish(): Promise<void> {
+    return new Promise((resolve) => setTimeout(() => resolve(), 30000));
+}
