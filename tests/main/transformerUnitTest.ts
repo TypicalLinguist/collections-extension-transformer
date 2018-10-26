@@ -6,7 +6,7 @@ import {TestingData} from "../helpers/TestingData";
 import {TestSuites} from "../helpers/TestSuites";
 
 UnitUnderTest(`transformer`, () => {
-    Given(`A existing program`, () => {
+    Given(`An existing program`, () => {
         const testingData = new TestingData(TestSuites.TransformAll);
         const projectMock = new ProjectMock();
         const sandbox = new Sandbox(testingData, projectMock);

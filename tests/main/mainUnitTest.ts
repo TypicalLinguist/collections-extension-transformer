@@ -1,19 +1,20 @@
-import Project, {SourceFile} from "ts-simple-ast";
+import {CompilerOptions, SourceFile} from "ts-simple-ast";
 import {main, TransformerSignature} from "../../source/main/main";
 import {createErrorMessageFromTemplate} from "../../source/main/secondPass";
 import {arrayLiteralToNewArrayExpression} from "../../source/main/transforms/arrayLiteralToNewArrayExpression";
 import {collectionsExtensionImport} from "../../source/main/transforms/collectionsExtensionImport";
 import {Sandbox} from "../helpers/Sandbox";
-import {createVirtualSourceFiles} from "../helpers/sourceFileMockHelper";
+import {createSourceFiles} from "../helpers/sourceFileMockHelper";
 import {getJavascriptPaths} from "../config/mocha-bootstrap";
 
 UnitUnderTest(`main`, function(): void {
     this.timeout(50000);
 
+    let sourceFilePaths: string[];
     let tempDirectory: string;
     let sandbox: Sandbox;
     let outDir: string;
-    let project: Project;
+    let compilerOptions: CompilerOptions;
 
     function fakeRemoveSync(dir: string): void {
         "empty";
@@ -24,20 +25,17 @@ UnitUnderTest(`main`, function(): void {
         await sandbox.setup();
         tempDirectory = `${sandbox.path}/.typicalLinguist`;
         outDir = `${sandbox.path}/build`;
-        project = new Project({
-            compilerOptions: {
-                outDir,
-            },
-        });
+        compilerOptions = {
+            outDir,
+        };
     });
 
     Given(`a project that is free of syntactical and semantic errors that needs its code transformed`,
         function(): void {
             const sourceFileCount: number = 9;
-            let sourceFiles: SourceFile[];
 
             beforeEach(async function(): Promise<any> {
-                sourceFiles = createVirtualSourceFiles(project, sourceFileCount);
+                sourceFilePaths = createSourceFiles(sandbox.path, sourceFileCount);
             });
 
             When(`the main() function is executed with that project`, function(): void {
@@ -48,7 +46,14 @@ UnitUnderTest(`main`, function(): void {
                 let returnedSourceFiles: SourceFile[];
 
                 beforeEach(async function(): Promise<void> {
-                    returnedSourceFiles = await main(project, transforms, removeDirSpy);
+                    returnedSourceFiles = await main(
+                        sandbox.path,
+                        sourceFilePaths,
+                        compilerOptions,
+                        transforms,
+                        removeDirSpy,
+                    );
+
                     returnedSourceFiles = returnedSourceFiles.filter((file) => file.getBaseName() !== "lib.d.ts");
                     reduceStringOutput(returnedSourceFiles);
                 });
@@ -136,7 +141,13 @@ UnitUnderTest(`main`, function(): void {
                     Then(`then an error with the message: \n\t\t${errorMessage} \n\t\t should be thrown`,
                         async function(): Promise<void> {
                             try {
-                                await main(project, transforms, fakeRemoveSync);
+                                await main(
+                                    sandbox.path,
+                                    sourceFilePaths,
+                                    compilerOptions,
+                                    transforms,
+                                    removeDirSpy,
+                                );
                             } catch (e) {
                                 expect(e.message).to.equal(errorMessage);
                             }
@@ -146,7 +157,13 @@ UnitUnderTest(`main`, function(): void {
                     Then(`the temporary directory should not be removed`,
                         async function(): Promise<void> {
                             try {
-                                await main(project, transforms, fakeRemoveSync);
+                                await main(
+                                    sandbox.path,
+                                    sourceFilePaths,
+                                    compilerOptions,
+                                    transforms,
+                                    removeDirSpy,
+                                );
                             } catch (e) {
                                 expect(removeDirSpy).to.not.have.been.calledWith(tempDirectory);
                             }
@@ -160,17 +177,22 @@ UnitUnderTest(`main`, function(): void {
         const transforms = createTransformSpies();
 
         const sourceFileCount: number = 1;
-        let sourceFiles: SourceFile[];
 
         beforeEach(async function(): Promise<any> {
-            sourceFiles = createVirtualSourceFiles(project, sourceFileCount, true);
+            sourceFilePaths = createSourceFiles(sandbox.path, sourceFileCount, true);
         });
 
         When(`the main() function is executed with that project`, function(): void {
             const removeDirSpy = sinon.spy(fakeRemoveSync);
 
             Then(`the process should exit with code 1`, async function(): Promise<void> {
-                await main(project, transforms, fakeRemoveSync);
+                await main(
+                    sandbox.path,
+                    sourceFilePaths,
+                    compilerOptions,
+                    transforms,
+                    removeDirSpy,
+                );
 
                 expect(process.exitCode).to.equal(1);
             });
@@ -210,7 +232,13 @@ UnitUnderTest(`main`, function(): void {
             Then(`an error with the message: \n\t\t${errorMessage} \n\t\t should not be thrown`,
                 async function(): Promise<void> {
                     try {
-                        await main(project, transforms, fakeRemoveSync);
+                        await main(
+                            sandbox.path,
+                            sourceFilePaths,
+                            compilerOptions,
+                            transforms,
+                            removeDirSpy,
+                        );
                     } catch (e) {
                         expect(e.message).to.not.equal(errorMessage);
                     }
@@ -220,7 +248,13 @@ UnitUnderTest(`main`, function(): void {
             Then(`the temporary directory should not be removed`,
                 async function(): Promise<void> {
                     try {
-                        await main(project, transforms, fakeRemoveSync);
+                        await main(
+                            sandbox.path,
+                            sourceFilePaths,
+                            compilerOptions,
+                            transforms,
+                            removeDirSpy,
+                        );
                     } catch (e) {
                         expect(removeDirSpy).to.not.have.been.calledWith(tempDirectory);
                     }

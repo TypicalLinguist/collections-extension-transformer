@@ -1,6 +1,6 @@
-import {mkdirSync, Stats, unwatchFile, watchFile} from "fs";
+import {copyFileSync, mkdirSync, Stats, unwatchFile, watchFile} from "fs";
 import {removeSync} from "fs-extra-promise";
-import Project, {SourceFile, ts} from "ts-simple-ast";
+import Project, {CompilerOptions, SourceFile, ts} from "ts-simple-ast";
 import {PluginConfig} from "ttypescript/lib/PluginCreator";
 import {firstPass} from "./firstPass";
 import {secondPass} from "./secondPass";
@@ -10,19 +10,21 @@ import {collectionsExtensionImport} from "./transforms/collectionsExtensionImpor
 export default function(program: ts.Program, config?: PluginConfig)
     : (ctx: ts.TransformationContext) => (sourceFile: ts.SourceFile) => ts.SourceFile {
 
-    const project = new Project({
-        compilerOptions: program.getCompilerOptions(),
-    });
+    const projectDirectory = program.getCurrentDirectory();
+    const compilerOptions = program.getCompilerOptions();
+    const rootFilePaths = program.getRootFileNames();
+    const removeDirFunction = config.removeDirFunction ? config.removeDirFunction : removeSync;
 
-    program.getRootFileNames().forEach((fileName) => {
-        project.addExistingSourceFile(fileName);
-    });
+    const transforms = [
+        arrayLiteralToNewArrayExpression,
+        collectionsExtensionImport,
+    ];
 
-    main(project, [
-            arrayLiteralToNewArrayExpression,
-            collectionsExtensionImport,
-        ], config.removeDirFunction ? config.removeDirFunction : removeSync,
-        `${program.getCurrentDirectory()}/.typicalLinguist`);
+    main(projectDirectory,
+        rootFilePaths,
+        compilerOptions,
+        transforms,
+        removeDirFunction);
 
     return (ctx: ts.TransformationContext) => {
         return (sourceFile: ts.SourceFile) => {
@@ -31,11 +33,27 @@ export default function(program: ts.Program, config?: PluginConfig)
     };
 }
 
-export function main(project: Project, transforms: TransformerSignature[], removeDir: (dir: string) => void,
-                     tempDirectory: string = `${process.cwd()}/.typicalLinguist`): Promise<SourceFile[]> {
+export function main(projectDirectoryPath: string,
+                     rootFilePaths: ReadonlyArray<string>,
+                     compilerOptions: CompilerOptions,
+                     transforms: TransformerSignature[],
+                     removeDir: (dir: string) => void,
+                     tempDirectoryPath: string = `${projectDirectoryPath}/.typicalLinguist`): Promise<SourceFile[]> {
 
-    const hasInitialErrors = firstPass(project, transforms, tempDirectory);
-    const compilerOptions = project.getCompilerOptions();
+    mkdirSync(tempDirectoryPath);
+
+    const project = new Project({
+        compilerOptions,
+    });
+
+    rootFilePaths.forEach((filePath) => {
+        const relativeFilePath = filePath.split(`${projectDirectoryPath}/`)[1];
+        const temporaryDirFilePath = `${tempDirectoryPath}/${relativeFilePath}`;
+        copyFileSync(filePath, temporaryDirFilePath);
+        project.addExistingSourceFile(temporaryDirFilePath);
+    });
+
+    const hasInitialErrors = firstPass(project, transforms, tempDirectoryPath);
 
     let lastChange = 0;
 
@@ -53,7 +71,7 @@ export function main(project: Project, transforms: TransformerSignature[], remov
                 removeDir(compilerOptions.outDir);
                 try {
                     clearInterval(intervalId);
-                    const sourceFiles = secondPass(tempDirectory, hasInitialErrors, removeDir, compilerOptions);
+                    const sourceFiles = secondPass(tempDirectoryPath, hasInitialErrors, removeDir, compilerOptions);
                     resolve(sourceFiles);
                 } catch (e) {
                     reject(e);

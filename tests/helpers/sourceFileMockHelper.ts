@@ -1,8 +1,9 @@
 import Project, {SourceFile} from "ts-simple-ast";
+import {writeFileSync} from "fs";
 
 export {
     createVirtualSourceFileWithContent,
-    createVirtualSourceFiles,
+    createSourceFiles,
 };
 
 function createVirtualSourceFileWithContent(name: string, content: string): SourceFile {
@@ -14,19 +15,21 @@ function createVirtualSourceFileWithContent(name: string, content: string): Sour
     );
 }
 
-function createVirtualSourceFiles(project: Project, sourceFileCount: number,
-                                  withErrors: boolean = false): SourceFile[] {
+function createSourceFiles(projectDirectoryPath: string, sourceFileCount: number,
+                           withErrors: boolean = false): string[] {
 
-    const sourceFiles: SourceFile[] = [];
+    const filePaths: string[] = [];
     for (let i = 0; i < sourceFileCount; i++) {
-        const sourceFile = createSourceFile(project, i, withErrors);
-        sourceFiles.push(sourceFile);
+        const filePath = createSourceFile(projectDirectoryPath, i, withErrors);
+        filePaths.push(filePath);
     }
 
-    return sourceFiles;
+    return filePaths;
 }
 
-function createSourceFile(project: Project, i: number, withErrors: boolean): SourceFile {
+function createSourceFile(projectDirectoryPath: string, i: number, withErrors: boolean): string {
     const letKeyword = withErrors ? "" : "let";
-    return project.createSourceFile(`./myfiles/otherFiles/file${i}.ts`, `${letKeyword} content${i}`);
+    const filePath = `${projectDirectoryPath}/file${i}.ts`;
+    writeFileSync(filePath, `${letKeyword} content${i}`);
+    return filePath;
 }

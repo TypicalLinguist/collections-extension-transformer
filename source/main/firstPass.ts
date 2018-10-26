@@ -1,6 +1,6 @@
-import flatten = require("lodash.flatten");
+import flatten = require("lodash.flatten"); // <== you got to appreciate the irony
 import Project, {SourceFile} from "ts-simple-ast";
-import {checkForErrors} from "./common"; // <== you got to appreciate the irony
+import {checkForErrors} from "./common";
 import {TransformerSignature} from "./main";
 
 export function firstPass(project: Project, transforms: TransformerSignature[], tempDirectory: string): boolean {
@@ -30,12 +30,9 @@ function executeTransforms(project: Project, transforms: TransformerSignature[],
                            tempDirectory: string, userSourceFiles: SourceFile[]): SourceFile[] {
     return userSourceFiles
         .map((sourceFile) => {
-            const baseName = sourceFile.getBaseName();
-            const tempSourceFile = sourceFile.copy(`${tempDirectory}/${baseName}`);
             transforms.forEach((transform) => {
-                transform(tempSourceFile);
+                transform(sourceFile);
             });
-            project.removeSourceFile(sourceFile);
-            return tempSourceFile;
+            return sourceFile;
         });
 }
