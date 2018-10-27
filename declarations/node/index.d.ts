@@ -8,5 +8,6 @@ declare namespace NodeJS {
 
     export interface Process extends EventEmitter {
         exit: (exitCode?: number) => void;
+        on: (event: string, func: () => void) => void;
     }
 }

@@ -11,6 +11,9 @@ class Sandbox {
 
     private testingData: TestingData;
     private projectMock: ProjectMock;
+    private fakeExitListener: () => void;
+    private exitListener: () => void;
+    private oldProcessOn: any;
 
     constructor(testingData?: TestingData, projectMock?: ProjectMock) {
         this.parentDirectoryPath = process.cwd();
@@ -46,22 +49,47 @@ class Sandbox {
         await removeAsync(this.path);
     }
 
+    public mockProcessEventHandler(): void {
+        this.oldProcessOn = process.on;
+
+        process.on = (event, func: () => void) => {
+            if (event === "exit") {
+                this.fakeExitListener = func;
+                process.on = this.oldProcessOn;
+            }
+        };
+    }
+
+    public emitFakeProcessExitEvent(): void {
+        this.removeCleanUpTasks();
+
+        this.fakeExitListener();
+
+        this.registerCleanUpTasks();
+    }
+
+    private removeCleanUpTasks(): void {
+        process.removeListener("exit", this.exitListener);
+    }
+
+    private registerCleanUpTasks(): void {
+        this.exitListener = () => {
+            existsAsync(this.path).then((exists) => {
+                if (exists) {
+                    removeAsync(this.path);
+                }
+            });
+        };
+
+        process.on("exit", this.exitListener);
+    }
+
     private async createSandboxEnvironment(): Promise<void> {
         await mkdirAsync(this.path);
         process.chdir(this.path);
         this.registerCleanUpTasks();
 
         this.mockProcess();
-    }
-
-    private registerCleanUpTasks(): void {
-        process.on("exit", () => {
-            existsAsync(this.path).then((exists) => {
-                if (exists) {
-                    removeAsync(this.path);
-                }
-            });
-        });
     }
 
     private mockProcess(): void {

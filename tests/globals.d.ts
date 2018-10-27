@@ -14,7 +14,7 @@ declare namespace Chai {
         copied: Assertion;
         from: Assertion;
 
-        calledInOrderWith(sourceFiles: SourceFile[]): Assertion;
+        calledInOrderWith(sourceFiles: string[]): Assertion;
 
         savedToDirectory(dir: string): Assertion;
 

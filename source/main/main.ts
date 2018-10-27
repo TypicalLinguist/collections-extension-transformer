@@ -1,4 +1,4 @@
-import {copyFileSync, mkdirSync, Stats, unwatchFile, watchFile} from "fs";
+import {copyFileSync, existsSync, mkdirSync} from "fs";
 import {removeSync} from "fs-extra-promise";
 import Project, {CompilerOptions, SourceFile, ts} from "ts-simple-ast";
 import {PluginConfig} from "ttypescript/lib/PluginCreator";
@@ -38,7 +38,7 @@ export function main(projectDirectoryPath: string,
                      compilerOptions: CompilerOptions,
                      transforms: TransformerSignature[],
                      removeDir: (dir: string) => void,
-                     tempDirectoryPath: string = `${projectDirectoryPath}/.typicalLinguist`): Promise<SourceFile[]> {
+                     tempDirectoryPath: string = `${projectDirectoryPath}/.typicalLinguist`): void {
 
     mkdirSync(tempDirectoryPath);
 
@@ -55,36 +55,17 @@ export function main(projectDirectoryPath: string,
 
     const hasInitialErrors = firstPass(project, transforms, tempDirectoryPath);
 
-    let lastChange = 0;
-
-    mkdirSync(compilerOptions.outDir);
-
-    const result = new Promise<SourceFile[]>((resolve, reject) => {
-        watchFile(compilerOptions.outDir, function(curr: Stats, prev: Stats): void {
-            lastChange = prev.mtime.getTime() - curr.mtime.getTime();
-        });
-
-        const intervalId = setInterval(function(): void {
-            const timeDiff = (Date.now() - lastChange) / 1000;
-            if (timeDiff > 30) {
-                unwatchFile(compilerOptions.outDir);
-                removeDir(compilerOptions.outDir);
-                try {
-                    clearInterval(intervalId);
-                    const sourceFiles = secondPass(tempDirectoryPath, hasInitialErrors, removeDir, compilerOptions);
-                    resolve(sourceFiles);
-                } catch (e) {
-                    reject(e);
-                }
-            }
-        }, 10000);
-    });
+    if (!existsSync(compilerOptions.outDir)) {
+        mkdirSync(compilerOptions.outDir);
+    }
 
     if (hasInitialErrors) {
         process.exit(1);
     }
 
-    return result;
+    process.on("exit", function(): void {
+        secondPass(tempDirectoryPath, hasInitialErrors, removeDir, compilerOptions);
+    });
 }
 
-export type TransformerSignature = (sourcefile: SourceFile) => SourceFile;
+export type TransformerSignature = (sourceFile: SourceFile) => SourceFile;

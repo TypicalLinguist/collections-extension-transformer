@@ -2,8 +2,8 @@ import "behavioural-describe-mocha";
 import {expect, use} from "chai";
 import {existsSync, readFileSync} from "fs";
 import {SinonSpy} from "sinon";
-import {SourceFile} from "ts-simple-ast";
 import {filesToEqualLanguageChain} from "./chaiLanguageChains/filesToEqualLanguageChain";
+import {basename, dirname} from "path";
 import chaiAsPromised = require("chai-as-promised");
 import sinon = require("sinon");
 import sinonChai = require("sinon-chai");
@@ -13,38 +13,34 @@ use(chaiAsPromised);
 use(filesToEqualLanguageChain);
 use((chai: any, utils) => {
     const Assertion: any = chai.Assertion;
-    Assertion.addMethod("calledInOrderWith", function(sourceFiles: SourceFile[]): void {
+    Assertion.addMethod("calledInOrderWith", function(transformedFilePaths: string[]): void {
         const transforms = this._obj as SinonSpy[];
 
-        sourceFiles.forEach((sourceFile) => {
+        transformedFilePaths.forEach((sourceFile) => {
             transforms.forEach((transform, index) => {
                 if (index < 0) {
                     expect(transform).to.have.been.calledAfter(transforms[index - 1]);
                 }
 
-                const calls = transform.getCalls().map((call) => call.returnValue.getText());
-                expect(calls).to.include(sourceFile.getText());
+                const calls = transform.getCalls().map((call) => call.returnValue.getFilePath());
+                expect(calls).to.include(sourceFile);
             });
         });
     });
 
     Assertion.addMethod("savedToDirectory", function(expectedDir: string): void {
-        const transformedSourceFiles = this._obj as SourceFile[];
+        const transformedSourceFiles = this._obj as string[];
 
         transformedSourceFiles.forEach((sourceFile) => {
-            const isSaved = sourceFile.isSaved();
-            const baseName = sourceFile.getBaseName();
-            const directory = sourceFile.getDirectoryPath();
-
-            this.assert(isSaved, `expected file ${baseName} to be saved, but it was not`);
             this.assert(
-                directory === expectedDir,
-                `expected file ${baseName} to be saved to directory ${expectedDir} but it was saved to ${directory}`);
+                dirname(sourceFile) === expectedDir,
+                `expected file ${basename(sourceFile)} ` +
+                `to be saved to directory ${expectedDir} but it was saved to ${dirname(sourceFile)}`);
         });
     });
 
     Assertion.addMethod("compiledToJavascript", function(): void {
-        const transformedSourceFiles = this._obj as SourceFile[];
+        const transformedSourceFiles = this._obj as string[];
 
         getJavascriptPaths(transformedSourceFiles).forEach((javascriptPath) => {
             this.assert(existsSync(javascriptPath), `expected compiled javascript to exist at ${javascriptPath}`);
@@ -86,15 +82,14 @@ use((chai: any, utils) => {
     });
 });
 
-export function getJavascriptPaths(transformedSourceFiles: SourceFile[]): string[] {
-    return transformedSourceFiles.filter(filterOutDeclarationFiles).map((sourceFile) => {
-        const path = sourceFile.getFilePath();
-        return path.replace(".ts", ".js");
+export function getJavascriptPaths(transformedSourceFiles: string[]): string[] {
+    return transformedSourceFiles.filter(filterOutDeclarationFiles).map((filePath) => {
+        return filePath.replace(".ts", ".js");
     });
 }
 
-function filterOutDeclarationFiles(sourceFile: SourceFile): boolean {
-    return !sourceFile.getFilePath().endsWith("d.ts");
+function filterOutDeclarationFiles(filePath: string): boolean {
+    return !filePath.endsWith("d.ts");
 }
 
 global.expect = expect;

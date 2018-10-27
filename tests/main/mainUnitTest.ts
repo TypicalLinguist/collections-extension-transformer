@@ -6,6 +6,26 @@ import {collectionsExtensionImport} from "../../source/main/transforms/collectio
 import {Sandbox} from "../helpers/Sandbox";
 import {createSourceFiles} from "../helpers/sourceFileMockHelper";
 import {getJavascriptPaths} from "../config/mocha-bootstrap";
+import recursiveReadSync = require("recursive-readdir-sync");
+
+function executeMainToCompletion(sandbox: Sandbox,
+                                 sourceFilePaths: string[],
+                                 compilerOptions: CompilerOptions,
+                                 transforms: TransformerSignature[],
+                                 removeDirSpy: () => void): void {
+
+    sandbox.mockProcessEventHandler();
+
+    main(
+        sandbox.path,
+        sourceFilePaths,
+        compilerOptions,
+        transforms,
+        removeDirSpy,
+    );
+
+    sandbox.emitFakeProcessExitEvent();
+}
 
 UnitUnderTest(`main`, function(): void {
     this.timeout(50000);
@@ -43,43 +63,38 @@ UnitUnderTest(`main`, function(): void {
 
                 const transforms = createTransformSpies();
 
-                let returnedSourceFiles: SourceFile[];
+                let producedFilePaths: string[];
 
-                beforeEach(async function(): Promise<void> {
-                    returnedSourceFiles = await main(
-                        sandbox.path,
-                        sourceFilePaths,
-                        compilerOptions,
-                        transforms,
-                        removeDirSpy,
-                    );
+                beforeEach(function(): void {
+                    executeMainToCompletion(sandbox, sourceFilePaths, compilerOptions, transforms, removeDirSpy);
 
-                    returnedSourceFiles = returnedSourceFiles.filter((file) => file.getBaseName() !== "lib.d.ts");
-                    reduceStringOutput(returnedSourceFiles);
+                    producedFilePaths = recursiveReadSync(tempDirectory)
+                        .filter((file) => !file.endsWith("lib.d.ts"))
+                        .filter((file) => !file.endsWith("js"));
                 });
 
                 Then(`the transformation functions should be executed on each file in the correct order`,
                     function(): void {
-                        expect(transforms).to.have.been.calledInOrderWith(returnedSourceFiles);
+                        expect(transforms).to.have.been.calledInOrderWith(producedFilePaths);
                     },
                 );
 
                 Then(`the transformed source files should be saved to the temporary directory`,
                     function(): void {
-                        expect(returnedSourceFiles).to.be.savedToDirectory(`${tempDirectory}`);
+                        expect(producedFilePaths).to.be.savedToDirectory(`${tempDirectory}`);
                     },
                 );
 
                 Then(`the transformed source files in temporary directory should compiled to javascript`,
                     function(): void {
-                        expect(returnedSourceFiles).to.be.compiledToJavascript();
+                        expect(producedFilePaths).to.be.compiledToJavascript();
                     },
                 );
 
                 And(`the source files have been compiled to javascript`, function(): void {
                     let relativeFilePaths: string[];
                     beforeEach(function(): void {
-                        relativeFilePaths = getJavascriptPaths(returnedSourceFiles)
+                        relativeFilePaths = getJavascriptPaths(producedFilePaths)
                             .map((path) => path.split(`${tempDirectory}/`)[1]);
                     });
 
@@ -139,10 +154,10 @@ UnitUnderTest(`main`, function(): void {
 
                 When(`the main() function is executed with that project`, function(): void {
                     Then(`then an error with the message: \n\t\t${errorMessage} \n\t\t should be thrown`,
-                        async function(): Promise<void> {
+                        function(): void {
                             try {
-                                await main(
-                                    sandbox.path,
+                                executeMainToCompletion(
+                                    sandbox,
                                     sourceFilePaths,
                                     compilerOptions,
                                     transforms,
@@ -155,10 +170,10 @@ UnitUnderTest(`main`, function(): void {
                     );
 
                     Then(`the temporary directory should not be removed`,
-                        async function(): Promise<void> {
+                        function(): void {
                             try {
-                                await main(
-                                    sandbox.path,
+                                executeMainToCompletion(
+                                    sandbox,
                                     sourceFilePaths,
                                     compilerOptions,
                                     transforms,
@@ -186,8 +201,8 @@ UnitUnderTest(`main`, function(): void {
             const removeDirSpy = sinon.spy(fakeRemoveSync);
 
             Then(`the process should exit with code 1`, async function(): Promise<void> {
-                await main(
-                    sandbox.path,
+                executeMainToCompletion(
+                    sandbox,
                     sourceFilePaths,
                     compilerOptions,
                     transforms,
@@ -232,8 +247,8 @@ UnitUnderTest(`main`, function(): void {
             Then(`an error with the message: \n\t\t${errorMessage} \n\t\t should not be thrown`,
                 async function(): Promise<void> {
                     try {
-                        await main(
-                            sandbox.path,
+                        executeMainToCompletion(
+                            sandbox,
                             sourceFilePaths,
                             compilerOptions,
                             transforms,
@@ -248,8 +263,8 @@ UnitUnderTest(`main`, function(): void {
             Then(`the temporary directory should not be removed`,
                 async function(): Promise<void> {
                     try {
-                        await main(
-                            sandbox.path,
+                        executeMainToCompletion(
+                            sandbox,
                             sourceFilePaths,
                             compilerOptions,
                             transforms,
@@ -273,10 +288,6 @@ function createTransformSpies(): TransformerSignature[] {
         sinon.spy(arrayLiteralToNewArrayExpression),
         sinon.spy(collectionsExtensionImport),
     ];
-}
-
-function reduceStringOutput(sourceFiles: SourceFile[]): void {
-    sourceFiles.forEach((sourceFile) => sourceFile.toString = () => `(SourceFile: ${sourceFile.getBaseName()})`);
 }
 
 function breakingTransformFunction(sourceFile: SourceFile): SourceFile {
