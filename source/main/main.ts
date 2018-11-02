@@ -1,6 +1,6 @@
-import {copyFileSync, existsSync, mkdirSync} from "fs";
+import {mkdirSync} from "fs";
 import {removeSync} from "fs-extra-promise";
-import Project, {CompilerOptions, SourceFile, ts} from "ts-simple-ast";
+import {CompilerOptions, SourceFile, ts} from "ts-simple-ast";
 import {PluginConfig} from "ttypescript/lib/PluginCreator";
 import {firstPass} from "./firstPass";
 import {secondPass} from "./secondPass";
@@ -10,17 +10,17 @@ import {collectionsExtensionImport} from "./transforms/collectionsExtensionImpor
 export default function(program: ts.Program, config?: PluginConfig)
     : (ctx: ts.TransformationContext) => (sourceFile: ts.SourceFile) => ts.SourceFile {
 
-    const projectDirectory = program.getCurrentDirectory();
+    const projectDirectoryPath = program.getCurrentDirectory();
     const compilerOptions = program.getCompilerOptions();
     const rootFilePaths = program.getRootFileNames();
     const removeDirFunction = config.removeDirFunction ? config.removeDirFunction : removeSync;
 
     const transforms = [
-        arrayLiteralToNewArrayExpression,
         collectionsExtensionImport,
+        arrayLiteralToNewArrayExpression,
     ];
 
-    main(projectDirectory,
+    main(projectDirectoryPath,
         rootFilePaths,
         compilerOptions,
         transforms,
@@ -42,29 +42,10 @@ export function main(projectDirectoryPath: string,
 
     mkdirSync(tempDirectoryPath);
 
-    const project = new Project({
-        compilerOptions,
-    });
-
-    rootFilePaths.forEach((filePath) => {
-        const relativeFilePath = filePath.split(`${projectDirectoryPath}/`)[1];
-        const temporaryDirFilePath = `${tempDirectoryPath}/${relativeFilePath}`;
-        copyFileSync(filePath, temporaryDirFilePath);
-        project.addExistingSourceFile(temporaryDirFilePath);
-    });
-
-    const hasInitialErrors = firstPass(project, transforms, tempDirectoryPath);
-
-    if (!existsSync(compilerOptions.outDir)) {
-        mkdirSync(compilerOptions.outDir);
-    }
-
-    if (hasInitialErrors) {
-        process.exit(1);
-    }
+    firstPass(compilerOptions, projectDirectoryPath, rootFilePaths, transforms, tempDirectoryPath, removeDir);
 
     process.on("exit", function(): void {
-        secondPass(tempDirectoryPath, hasInitialErrors, removeDir, compilerOptions);
+        secondPass(tempDirectoryPath, removeDir, compilerOptions);
     });
 }
 

@@ -1,11 +1,12 @@
-import {CompilerOptions, SourceFile} from "ts-simple-ast";
+import {CompilerOptions, SourceFile, ts} from "ts-simple-ast";
 import {main, TransformerSignature} from "../../source/main/main";
-import {createErrorMessageFromTemplate} from "../../source/main/secondPass";
 import {arrayLiteralToNewArrayExpression} from "../../source/main/transforms/arrayLiteralToNewArrayExpression";
 import {collectionsExtensionImport} from "../../source/main/transforms/collectionsExtensionImport";
 import {Sandbox} from "../helpers/Sandbox";
 import {createSourceFiles} from "../helpers/sourceFileMockHelper";
 import {getJavascriptPaths} from "../config/mocha-bootstrap";
+import {spawn} from "child-process-promise";
+import {writeJsonAsync} from "fs-extra-promise";
 import recursiveReadSync = require("recursive-readdir-sync");
 
 function executeMainToCompletion(sandbox: Sandbox,
@@ -27,6 +28,39 @@ function executeMainToCompletion(sandbox: Sandbox,
     sandbox.emitFakeProcessExitEvent();
 }
 
+async function configureNodeModules(sandbox: Sandbox): Promise<void> {
+    await writeJsonAsync("package.json", {
+            dependencies: {
+                "@types/node": "8.10.17",
+                "typescript": "2.8.3",
+            },
+            main: "index.js",
+            name: "sandbox",
+            version: "1.0.0",
+        },
+    );
+
+    const promise = spawn("npm", ["install"], {
+        cwd: sandbox.path,
+    });
+
+    const errors: string[] = [];
+
+    promise.childProcess.stderr.on("error", (data) => {
+        errors.push(data.toString());
+    });
+
+    await promise;
+
+    if (errors.length > 0) {
+        throw new Error(`npm install failed ${errors}`);
+    }
+
+    await spawn("npm", ["link", "@typical-linguist/collections-extension"], {
+        cwd: sandbox.path,
+    });
+}
+
 UnitUnderTest(`main`, function(): void {
     this.timeout(50000);
 
@@ -46,7 +80,10 @@ UnitUnderTest(`main`, function(): void {
         tempDirectory = `${sandbox.path}/.typicalLinguist`;
         outDir = `${sandbox.path}/build`;
         compilerOptions = {
+            rootDir: sandbox.path,
             outDir,
+            target: ts.ScriptTarget.ES2017,
+            module: ts.ModuleKind.CommonJS,
         };
     });
 
@@ -55,6 +92,8 @@ UnitUnderTest(`main`, function(): void {
             const sourceFileCount: number = 9;
 
             beforeEach(async function(): Promise<any> {
+                await configureNodeModules(sandbox);
+
                 sourceFilePaths = createSourceFiles(sandbox.path, sourceFileCount);
             });
 
@@ -120,37 +159,144 @@ UnitUnderTest(`main`, function(): void {
                     breakingTransformFunction,
                 ];
 
-                const expectedDiagnosticErrors = [
-                    "';' expected.",
-                    "';' expected.",
-                    "';' expected.",
-                    "';' expected.",
-                    "';' expected.",
-                    "';' expected.",
-                    "';' expected.",
-                    "';' expected.",
-                    "';' expected.",
-                    "Cannot find name '________________________let'.",
-                    "Cannot find name 'content0'.",
-                    "Cannot find name '________________________let'.",
-                    "Cannot find name 'content1'.",
-                    "Cannot find name '________________________let'.",
-                    "Cannot find name 'content2'.",
-                    "Cannot find name '________________________let'.",
-                    "Cannot find name 'content3'.",
-                    "Cannot find name '________________________let'.",
-                    "Cannot find name 'content4'.",
-                    "Cannot find name '________________________let'.",
-                    "Cannot find name 'content5'.",
-                    "Cannot find name '________________________let'.",
-                    "Cannot find name 'content6'.",
-                    "Cannot find name '________________________let'.",
-                    "Cannot find name 'content7'.",
-                    "Cannot find name '________________________let'.",
-                    "Cannot find name 'content8'.",
-                ];
-
-                const errorMessage = createErrorMessageFromTemplate(expectedDiagnosticErrors);
+                const errorMessage = "Error introduced by Typical Linguist plugin 'collection-extension-transformer'. This is most probable our fault.\n" +
+                    "\t\t Please Raise an issue on github: https://github.com/TypicalLinguist/collections-extension-issues/issues/new. \n" +
+                    "\t\t and include the relevant files/snippets in the error(s) below in the issue from the " +
+                    "generated ./.typical-linguist temporary directory \n" +
+                    "Actual:\n" +
+                    "[96m.typicalLinguist/file0.ts[0m:[93m1[0m:[93m1[0m - [91merror[0m[90m TS2304: [0mCannot find name '________________________let'.\n" +
+                    "\n" +
+                    "[7m1[0m ________________________let content0\n" +
+                    "[7m [0m [91m~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m\n" +
+                    "[96m.typicalLinguist/file0.ts[0m:[93m1[0m:[93m29[0m - [91merror[0m[90m TS1005: [0m';' expected.\n" +
+                    "\n" +
+                    "[7m1[0m ________________________let content0\n" +
+                    "[7m [0m [91m                            ~~~~~~~~[0m\n" +
+                    "[96m.typicalLinguist/file0.ts[0m:[93m1[0m:[93m29[0m - [91merror[0m[90m TS2552: [0mCannot find name 'content0'. Did you mean 'context'?\n" +
+                    "\n" +
+                    "[7m1[0m ________________________let content0\n" +
+                    "[7m [0m [91m                            ~~~~~~~~[0m\n" +
+                    "\n" +
+                    "  [96m../node_modules/@types/mocha/index.d.ts[0m:[93m44[0m:[93m15[0m\n" +
+                    "    [7m44[0m declare const context: Mocha.IContextDefinition;\n" +
+                    "    [7m  [0m [96m              ~~~~~~~[0m\n" +
+                    "    'context' is declared here.\n" +
+                    "[96m.typicalLinguist/file1.ts[0m:[93m1[0m:[93m1[0m - [91merror[0m[90m TS2304: [0mCannot find name '________________________let'.\n" +
+                    "\n" +
+                    "[7m1[0m ________________________let content1\n" +
+                    "[7m [0m [91m~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m\n" +
+                    "[96m.typicalLinguist/file1.ts[0m:[93m1[0m:[93m29[0m - [91merror[0m[90m TS1005: [0m';' expected.\n" +
+                    "\n" +
+                    "[7m1[0m ________________________let content1\n" +
+                    "[7m [0m [91m                            ~~~~~~~~[0m\n" +
+                    "[96m.typicalLinguist/file1.ts[0m:[93m1[0m:[93m29[0m - [91merror[0m[90m TS2552: [0mCannot find name 'content1'. Did you mean 'context'?\n" +
+                    "\n" +
+                    "[7m1[0m ________________________let content1\n" +
+                    "[7m [0m [91m                            ~~~~~~~~[0m\n" +
+                    "\n" +
+                    "  [96m../node_modules/@types/mocha/index.d.ts[0m:[93m44[0m:[93m15[0m\n" +
+                    "    [7m44[0m declare const context: Mocha.IContextDefinition;\n" +
+                    "    [7m  [0m [96m              ~~~~~~~[0m\n" +
+                    "    'context' is declared here.\n" +
+                    "[96m.typicalLinguist/file2.ts[0m:[93m1[0m:[93m1[0m - [91merror[0m[90m TS2304: [0mCannot find name '________________________let'.\n" +
+                    "\n" +
+                    "[7m1[0m ________________________let content2\n" +
+                    "[7m [0m [91m~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m\n" +
+                    "[96m.typicalLinguist/file2.ts[0m:[93m1[0m:[93m29[0m - [91merror[0m[90m TS1005: [0m';' expected.\n" +
+                    "\n" +
+                    "[7m1[0m ________________________let content2\n" +
+                    "[7m [0m [91m                            ~~~~~~~~[0m\n" +
+                    "[96m.typicalLinguist/file2.ts[0m:[93m1[0m:[93m29[0m - [91merror[0m[90m TS2552: [0mCannot find name 'content2'. Did you mean 'context'?\n" +
+                    "\n" +
+                    "[7m1[0m ________________________let content2\n" +
+                    "[7m [0m [91m                            ~~~~~~~~[0m\n" +
+                    "\n" +
+                    "  [96m../node_modules/@types/mocha/index.d.ts[0m:[93m44[0m:[93m15[0m\n" +
+                    "    [7m44[0m declare const context: Mocha.IContextDefinition;\n" +
+                    "    [7m  [0m [96m              ~~~~~~~[0m\n" +
+                    "    'context' is declared here.\n" +
+                    "[96m.typicalLinguist/file3.ts[0m:[93m1[0m:[93m1[0m - [91merror[0m[90m TS2304: [0mCannot find name '________________________let'.\n" +
+                    "\n" +
+                    "[7m1[0m ________________________let content3\n" +
+                    "[7m [0m [91m~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m\n" +
+                    "[96m.typicalLinguist/file3.ts[0m:[93m1[0m:[93m29[0m - [91merror[0m[90m TS1005: [0m';' expected.\n" +
+                    "\n" +
+                    "[7m1[0m ________________________let content3\n" +
+                    "[7m [0m [91m                            ~~~~~~~~[0m\n" +
+                    "[96m.typicalLinguist/file3.ts[0m:[93m1[0m:[93m29[0m - [91merror[0m[90m TS2552: [0mCannot find name 'content3'. Did you mean 'context'?\n" +
+                    "\n" +
+                    "[7m1[0m ________________________let content3\n" +
+                    "[7m [0m [91m                            ~~~~~~~~[0m\n" +
+                    "\n" +
+                    "  [96m../node_modules/@types/mocha/index.d.ts[0m:[93m44[0m:[93m15[0m\n" +
+                    "    [7m44[0m declare const context: Mocha.IContextDefinition;\n" +
+                    "    [7m  [0m [96m              ~~~~~~~[0m\n" +
+                    "    'context' is declared here.\n" +
+                    "[96m.typicalLinguist/file4.ts[0m:[93m1[0m:[93m1[0m - [91merror[0m[90m TS2304: [0mCannot find name '________________________let'.\n" +
+                    "\n" +
+                    "[7m1[0m ________________________let content4\n" +
+                    "[7m [0m [91m~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m\n" +
+                    "[96m.typicalLinguist/file4.ts[0m:[93m1[0m:[93m29[0m - [91merror[0m[90m TS1005: [0m';' expected.\n" +
+                    "\n" +
+                    "[7m1[0m ________________________let content4\n" +
+                    "[7m [0m [91m                            ~~~~~~~~[0m\n" +
+                    "[96m.typicalLinguist/file4.ts[0m:[93m1[0m:[93m29[0m - [91merror[0m[90m TS2552: [0mCannot find name 'content4'. Did you mean 'context'?\n" +
+                    "\n" +
+                    "[7m1[0m ________________________let content4\n" +
+                    "[7m [0m [91m                            ~~~~~~~~[0m\n" +
+                    "\n" +
+                    "  [96m../node_modules/@types/mocha/index.d.ts[0m:[93m44[0m:[93m15[0m\n" +
+                    "    [7m44[0m declare const context: Mocha.IContextDefinition;\n" +
+                    "    [7m  [0m [96m              ~~~~~~~[0m\n" +
+                    "    'context' is declared here.\n" +
+                    "[96m.typicalLinguist/file5.ts[0m:[93m1[0m:[93m1[0m - [91merror[0m[90m TS2304: [0mCannot find name '________________________let'.\n" +
+                    "\n" +
+                    "[7m1[0m ________________________let content5\n" +
+                    "[7m [0m [91m~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m\n" +
+                    "[96m.typicalLinguist/file5.ts[0m:[93m1[0m:[93m29[0m - [91merror[0m[90m TS1005: [0m';' expected.\n" +
+                    "\n" +
+                    "[7m1[0m ________________________let content5\n" +
+                    "[7m [0m [91m                            ~~~~~~~~[0m\n" +
+                    "[96m.typicalLinguist/file5.ts[0m:[93m1[0m:[93m29[0m - [91merror[0m[90m TS2304: [0mCannot find name 'content5'.\n" +
+                    "\n" +
+                    "[7m1[0m ________________________let content5\n" +
+                    "[7m [0m [91m                            ~~~~~~~~[0m\n" +
+                    "[96m.typicalLinguist/file6.ts[0m:[93m1[0m:[93m1[0m - [91merror[0m[90m TS2304: [0mCannot find name '________________________let'.\n" +
+                    "\n" +
+                    "[7m1[0m ________________________let content6\n" +
+                    "[7m [0m [91m~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m\n" +
+                    "[96m.typicalLinguist/file6.ts[0m:[93m1[0m:[93m29[0m - [91merror[0m[90m TS1005: [0m';' expected.\n" +
+                    "\n" +
+                    "[7m1[0m ________________________let content6\n" +
+                    "[7m [0m [91m                            ~~~~~~~~[0m\n" +
+                    "[96m.typicalLinguist/file6.ts[0m:[93m1[0m:[93m29[0m - [91merror[0m[90m TS2304: [0mCannot find name 'content6'.\n" +
+                    "\n" +
+                    "[7m1[0m ________________________let content6\n" +
+                    "[7m [0m [91m                            ~~~~~~~~[0m\n" +
+                    "[96m.typicalLinguist/file7.ts[0m:[93m1[0m:[93m1[0m - [91merror[0m[90m TS2304: [0mCannot find name '________________________let'.\n" +
+                    "\n" +
+                    "[7m1[0m ________________________let content7\n" +
+                    "[7m [0m [91m~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m\n" +
+                    "[96m.typicalLinguist/file7.ts[0m:[93m1[0m:[93m29[0m - [91merror[0m[90m TS1005: [0m';' expected.\n" +
+                    "\n" +
+                    "[7m1[0m ________________________let content7\n" +
+                    "[7m [0m [91m                            ~~~~~~~~[0m\n" +
+                    "[96m.typicalLinguist/file7.ts[0m:[93m1[0m:[93m29[0m - [91merror[0m[90m TS2304: [0mCannot find name 'content7'.\n" +
+                    "\n" +
+                    "[7m1[0m ________________________let content7\n" +
+                    "[7m [0m [91m                            ~~~~~~~~[0m\n" +
+                    "[96m.typicalLinguist/file8.ts[0m:[93m1[0m:[93m1[0m - [91merror[0m[90m TS2304: [0mCannot find name '________________________let'.\n" +
+                    "\n" +
+                    "[7m1[0m ________________________let content8\n" +
+                    "[7m [0m [91m~~~~~~~~~~~~~~~~~~~~~~~~~~~[0m\n" +
+                    "[96m.typicalLinguist/file8.ts[0m:[93m1[0m:[93m29[0m - [91merror[0m[90m TS1005: [0m';' expected.\n" +
+                    "\n" +
+                    "[7m1[0m ________________________let content8\n" +
+                    "[7m [0m [91m                            ~~~~~~~~[0m\n" +
+                    "[96m.typicalLinguist/file8.ts[0m:[93m1[0m:[93m29[0m - [91merror[0m[90m TS2304: [0mCannot find name 'content8'.\n" +
+                    "\n" +
+                    "[7m1[0m ________________________let content8\n" +
+                    "[7m [0m [91m                            ~~~~~~~~[0m\n";
 
                 When(`the main() function is executed with that project`, function(): void {
                     Then(`then an error with the message: \n\t\t${errorMessage} \n\t\t should be thrown`,
@@ -200,51 +346,19 @@ UnitUnderTest(`main`, function(): void {
         When(`the main() function is executed with that project`, function(): void {
             const removeDirSpy = sinon.spy(fakeRemoveSync);
 
-            Then(`the process should exit with code 1`, async function(): Promise<void> {
-                executeMainToCompletion(
-                    sandbox,
-                    sourceFilePaths,
-                    compilerOptions,
-                    transforms,
-                    removeDirSpy,
-                );
+            const errorMessage = "Compilation failed, due to these issues: \n" +
+                "\n" +
+                "[96m.typicalLinguist/file0.ts[0m:[93m1[0m:[93m2[0m - [91merror[0m[90m TS2552: [0mCannot find name 'content0'. Did you mean 'context'?\n" +
+                "\n" +
+                "[7m1[0m  content0\n" +
+                "[7m [0m [91m ~~~~~~~~[0m\n" +
+                "\n" +
+                "  [96m../node_modules/@types/mocha/index.d.ts[0m:[93m44[0m:[93m15[0m\n" +
+                "    [7m44[0m declare const context: Mocha.IContextDefinition;\n" +
+                "    [7m  [0m [96m              ~~~~~~~[0m\n" +
+                "    'context' is declared here.\n";
 
-                expect(process.exitCode).to.equal(1);
-            });
-
-            const expectedDiagnosticErrors = [
-                "';' expected.",
-                "';' expected.",
-                "';' expected.",
-                "';' expected.",
-                "';' expected.",
-                "';' expected.",
-                "';' expected.",
-                "';' expected.",
-                "';' expected.",
-                "Cannot find name '________________________let'.",
-                "Cannot find name 'content0'.",
-                "Cannot find name '________________________let'.",
-                "Cannot find name 'content1'.",
-                "Cannot find name '________________________let'.",
-                "Cannot find name 'content2'.",
-                "Cannot find name '________________________let'.",
-                "Cannot find name 'content3'.",
-                "Cannot find name '________________________let'.",
-                "Cannot find name 'content4'.",
-                "Cannot find name '________________________let'.",
-                "Cannot find name 'content5'.",
-                "Cannot find name '________________________let'.",
-                "Cannot find name 'content6'.",
-                "Cannot find name '________________________let'.",
-                "Cannot find name 'content7'.",
-                "Cannot find name '________________________let'.",
-                "Cannot find name 'content8'.",
-            ];
-
-            const errorMessage = createErrorMessageFromTemplate(expectedDiagnosticErrors);
-
-            Then(`an error with the message: \n\t\t${errorMessage} \n\t\t should not be thrown`,
+            Then(`an error with the message: \n\t\t${errorMessage} \n\t\t should be thrown`,
                 async function(): Promise<void> {
                     try {
                         executeMainToCompletion(
@@ -255,12 +369,12 @@ UnitUnderTest(`main`, function(): void {
                             removeDirSpy,
                         );
                     } catch (e) {
-                        expect(e.message).to.not.equal(errorMessage);
+                        expect(e.message).to.equal(errorMessage);
                     }
                 },
             );
 
-            Then(`the temporary directory should not be removed`,
+            Then(`the temporary directory should be removed`,
                 async function(): Promise<void> {
                     try {
                         executeMainToCompletion(
@@ -271,7 +385,7 @@ UnitUnderTest(`main`, function(): void {
                             removeDirSpy,
                         );
                     } catch (e) {
-                        expect(removeDirSpy).to.not.have.been.calledWith(tempDirectory);
+                        expect(removeDirSpy).to.have.been.calledWith(tempDirectory);
                     }
                 },
             );
@@ -285,8 +399,8 @@ UnitUnderTest(`main`, function(): void {
 
 function createTransformSpies(): TransformerSignature[] {
     return [
-        sinon.spy(arrayLiteralToNewArrayExpression),
         sinon.spy(collectionsExtensionImport),
+        sinon.spy(arrayLiteralToNewArrayExpression),
     ];
 }
 

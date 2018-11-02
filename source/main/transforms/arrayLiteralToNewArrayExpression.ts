@@ -1,12 +1,14 @@
 import {
     ArrayLiteralExpression,
     ArrayTypeNode,
+    CallExpression,
     CodeBlockWriter,
     Expression,
     NewExpression,
     Node,
     SourceFile,
     Type,
+    TypeNode,
 } from "ts-simple-ast";
 
 export function arrayLiteralToNewArrayExpression(sourceFile: SourceFile): SourceFile {
@@ -221,6 +223,12 @@ function visit(nodes: Node[], sourceFile: SourceFile): void {
 
         if (child instanceof ArrayLiteralExpression) {
             replaceWithNewArrayExpression(child as ArrayLiteralExpression, sourceFile);
+        } else if (child instanceof CallExpression) {
+            if (child.getReturnType().isArray() && !child.getReturnType().getText().includes("@typical-linguist")) {
+                const oldCallExpression = child.getFullText();
+                const arrayType = child.getReturnType().getArrayType().getText()
+                child.replaceWithText(`(${oldCallExpression} as Array<${arrayType}>)`);
+            }
         }
     });
 }
@@ -230,6 +238,15 @@ function visitArrayTypeNode(nodes: Node[], sourceFile: SourceFile): void {
         const children = child.getChildren();
 
         visitArrayTypeNode(children, sourceFile);
+
+        if (child instanceof TypeNode) {
+            const typeArgs = child.getType().getTypeArguments();
+            let text = child.getText()
+            if (text.startsWith("import(")) {
+                text = text.split(").")[1];
+                child.replaceWithText(text);
+            }
+        }
 
         if (child instanceof ArrayTypeNode) {
             const typeString = buildTypeString(child.getType());
@@ -253,10 +270,17 @@ function buildTypeString(type: Type): string {
 
             return `Array<${subTypes}>`;
         } else if (typeArgs[0].isUnion() && aliasSymbol) {
+
             return `Array<${aliasSymbol.getName()}>`;
         }
 
-        return `Array<${typeArgs[0].getText()}>`;
+        let text = typeArgs[0].getText();
+
+        if (text.startsWith("import(")) {
+            text = text.split(").")[1];
+        }
+
+        return `Array<${text}>`;
     } else {
         return type.getText();
     }

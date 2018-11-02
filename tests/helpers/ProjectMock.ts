@@ -1,5 +1,5 @@
 import {spawn} from "child-process-promise";
-import {CompilerOptions, Program} from "ts-simple-ast";
+import {CompilerOptions, Program, ts} from "ts-simple-ast";
 import recursiveReadDir = require("recursive-readdir");
 
 export class ProjectMock {
@@ -34,11 +34,18 @@ export class ProjectMock {
         await spawn("npm", ["link", "@typical-linguist/collections-extension"], {
             cwd: this.path,
         });
+
+        await spawn("npm", ["link", "@typical-linguist/collections-extension-globals"], {
+            cwd: this.path,
+        });
     }
 
     public async getProgram(): Promise<any> {
         const rootFileNames = await this.readRootFilePaths();
         const workingDir = this.path;
+        rootFileNames
+            .push(`${workingDir}/node_modules/@typical-linguist/collections-extension-globals/index.d.ts`);
+        const instantiateProgramMockFirstMessage = "Please run setup to instantiate the program mock first";
 
         const ProgramProxy = new Proxy(Program, {
             construct(): any {
@@ -47,25 +54,27 @@ export class ProjectMock {
                         return {
                             getRootFileNames(): string[] {
                                 if (!rootFileNames) {
-                                    throw new Error("Please run setup to instantiate the program mock first");
+                                    throw new Error(instantiateProgramMockFirstMessage);
                                 }
 
                                 return rootFileNames;
                             },
                             getCurrentDirectory(): string {
                                 if (!rootFileNames) {
-                                    throw new Error("Please run setup to instantiate the program mock first");
+                                    throw new Error(instantiateProgramMockFirstMessage);
                                 }
 
                                 return workingDir;
                             },
                             getCompilerOptions(): CompilerOptions {
                                 if (!rootFileNames) {
-                                    throw new Error("Please run setup to instantiate the program mock first");
+                                    throw new Error(instantiateProgramMockFirstMessage);
                                 }
 
                                 return {
+                                    module: ts.ModuleKind.CommonJS,
                                     outDir: `${workingDir}/build`,
+                                    target: ts.ScriptTarget.ES2017,
                                 };
                             },
                         };

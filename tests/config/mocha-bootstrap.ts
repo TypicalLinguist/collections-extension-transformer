@@ -1,9 +1,9 @@
 import "behavioural-describe-mocha";
-import {expect, use} from "chai";
 import {existsSync, readFileSync} from "fs";
 import {SinonSpy} from "sinon";
 import {filesToEqualLanguageChain} from "./chaiLanguageChains/filesToEqualLanguageChain";
 import {basename, dirname} from "path";
+import {expect, use} from "chai";
 import chaiAsPromised = require("chai-as-promised");
 import sinon = require("sinon");
 import sinonChai = require("sinon-chai");

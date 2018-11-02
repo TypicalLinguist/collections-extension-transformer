@@ -1,36 +1,48 @@
-import flatten = require("lodash.flatten"); // <== you got to appreciate the irony
-import Project, {SourceFile} from "ts-simple-ast";
+import mkdirp = require("mkdirp");
+import Project, {CompilerOptions, SourceFile} from "ts-simple-ast";
 import {checkForErrors} from "./common";
 import {TransformerSignature} from "./main";
+import {copyFileSync} from "fs";
+import {dirname} from "path";
 
-export function firstPass(project: Project, transforms: TransformerSignature[], tempDirectory: string): boolean {
-    const userSourceFiles = getUserSourceFiles(project); // Executed before lib.d.ts is added
+export function firstPass(compilerOptions: CompilerOptions,
+                          projectDirectoryPath: string,
+                          rootFilePaths: ReadonlyArray<string>,
+                          transforms: TransformerSignature[],
+                          temporaryDirectoryPath: string,
+                          removeDir: (dir: string) => void): void {
 
-    const initialErrorMessages = checkForErrors(
-        project.getPreEmitDiagnostics(),
-    );
+    const compiler = new Project({
+        compilerOptions,
+    });
 
-    const sourceFiles = executeTransforms(project, transforms, tempDirectory, userSourceFiles);
+    rootFilePaths.forEach((filePath) => {
+        const relativeFilePath = filePath.split(`${projectDirectoryPath}/`)[1];
+        const temporaryDirFilePath = `${temporaryDirectoryPath}/${relativeFilePath}`;
+        mkdirp.sync(dirname(temporaryDirFilePath));
+        copyFileSync(filePath, temporaryDirFilePath);
+    });
 
-    const hasInitialErrors = initialErrorMessages.length > 0;
+    const userSourceFiles = compiler.addExistingSourceFiles(`${temporaryDirectoryPath}/**/*.ts`); // Executed before
+                                                                                                  // lib.d.ts is added
+    const preEmitDiagnostics = compiler.getPreEmitDiagnostics();
 
-    project.saveSync();
+    if (checkForErrors(preEmitDiagnostics)) {
+        removeDir(temporaryDirectoryPath);
+        throw new Error("Compilation failed, due to these issues: \n\n"
+            + compiler.formatDiagnosticsWithColorAndContext(preEmitDiagnostics));
+    }
 
-    return hasInitialErrors;
-}
+    executeTransforms(compiler, transforms, temporaryDirectoryPath, userSourceFiles);
 
-function getUserSourceFiles(project: Project): SourceFile[] {
-    return flatten(project
-        .getRootDirectories()
-        .map((dir) => dir.getDescendantSourceFiles()),
-    );
+    compiler.saveSync();
 }
 
 function executeTransforms(project: Project, transforms: TransformerSignature[],
                            tempDirectory: string, userSourceFiles: SourceFile[]): SourceFile[] {
     return userSourceFiles
         .map((sourceFile) => {
-            transforms.forEach((transform) => {
+            transforms.forEach((transform, index) => {
                 transform(sourceFile);
             });
             return sourceFile;

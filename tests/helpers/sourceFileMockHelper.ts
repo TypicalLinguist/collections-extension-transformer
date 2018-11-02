@@ -19,6 +19,7 @@ function createSourceFiles(projectDirectoryPath: string, sourceFileCount: number
                            withErrors: boolean = false): string[] {
 
     const filePaths: string[] = [];
+
     for (let i = 0; i < sourceFileCount; i++) {
         const filePath = createSourceFile(projectDirectoryPath, i, withErrors);
         filePaths.push(filePath);
