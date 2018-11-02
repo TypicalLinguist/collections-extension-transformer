@@ -1,9 +1,11 @@
-# Introduction 
+# Usage
+See documentation [here](https://typical-linguist.gitbook.io/collections-extension/)
 
-This a typescript transformer that provides an extension to native collection functionality.
+# Contribution
 
-## Contributing
+### 1. Setup 
 
-### Running the tests
+    `npm install`
 
-**Note:** The test data is stored in the [testing-data repo](https://github.com/TypicalLinguist/collections-extension-testing-data) 
+### 2. Testing 
+    `./node_modules/mocha/bin/mocha --require ts-node/register --require ./tests/config/mocha-bootstrap.ts tests/**/**UnitTest.ts --timeout 15000`
