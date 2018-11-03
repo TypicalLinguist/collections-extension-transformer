@@ -5,28 +5,37 @@ import {checkForErrors} from "./common";
 import mkdirp = require("mkdirp");
 import recursiveReadDirSync = require("recursive-readdir-sync");
 
-export {secondPass, createErrorMessageFromTemplate};
+export {compileTransformedTypeScript, createErrorMessageFromTemplate};
 
-function secondPass(tempDirectory: string,
-                    removeDir: (dir: string) => void,
-                    compilerOptions: CompilerOptions): SourceFile[] {
+function compileTransformedTypeScript(tempDirectory: string,
+                                      removeDir: (dir: string) => void,
+                                      compilerOptions: CompilerOptions): SourceFile[] {
 
     const compiler = configureCompiler(compilerOptions);
     const sourceFiles = compiler.addExistingSourceFiles(tempDirectory);
+    ifSyntacticalErrorsThrow(compiler);
+    emitJavascript(compiler, tempDirectory, compilerOptions, removeDir);
+
+    return sourceFiles;
+}
+
+function ifSyntacticalErrorsThrow(compiler: Project): void {
     const preEmitDiagnostics = compiler.getPreEmitDiagnostics();
 
     if (checkForErrors(preEmitDiagnostics)) {
         const formattedDiagnosticsMessages = compiler.formatDiagnosticsWithColorAndContext(preEmitDiagnostics);
         throw new Error(createErrorMessageFromTemplate(formattedDiagnosticsMessages));
     }
+}
 
-    const emitResult = compiler.emit();
+function emitJavascript(compiler: Project,
+                        tempDirectory: string,
+                        compilerOptions: CompilerOptions,
+                        removeDir: (dir: string) => void): void {
 
+    compiler.emit();
     moveOutputToOutDir(tempDirectory, compilerOptions.outDir);
-
     removeDir(tempDirectory);
-
-    return sourceFiles;
 }
 
 function createErrorMessageFromTemplate(errorMessages: string): string {

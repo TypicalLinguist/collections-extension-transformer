@@ -2,8 +2,8 @@ import {mkdirSync} from "fs";
 import {removeSync} from "fs-extra-promise";
 import {CompilerOptions, SourceFile, ts} from "ts-simple-ast";
 import {PluginConfig} from "ttypescript/lib/PluginCreator";
-import {firstPass} from "./firstPass";
-import {secondPass} from "./secondPass";
+import {transformTypescript} from "./transformTypescript";
+import {compileTransformedTypeScript} from "./compileTransformedTypeScript";
 import {arrayLiteralToNewArrayExpression} from "./transforms/arrayLiteralToNewArrayExpression";
 import {collectionsExtensionImport} from "./transforms/collectionsExtensionImport";
 
@@ -42,10 +42,10 @@ export function main(projectDirectoryPath: string,
 
     mkdirSync(tempDirectoryPath);
 
-    firstPass(compilerOptions, projectDirectoryPath, rootFilePaths, transforms, tempDirectoryPath, removeDir);
+    transformTypescript(compilerOptions, projectDirectoryPath, rootFilePaths, transforms, tempDirectoryPath, removeDir);
 
     process.on("exit", function(): void {
-        secondPass(tempDirectoryPath, removeDir, compilerOptions);
+        compileTransformedTypeScript(tempDirectoryPath, removeDir, compilerOptions);
     });
 }
 
