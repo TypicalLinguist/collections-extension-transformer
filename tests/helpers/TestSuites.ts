@@ -1,5 +1,5 @@
 export enum TestSuites {
     TransformAll = "transformAll",
-    ArrayLiteralToNewArrayExpression = "arrayLiteralToNewArrayExpression",
+    ArrayLiteralToArrayExpression = "arrayLiteralToArrayExpression",
     CollectionsExtensionImport = "collectionsExtensionImport",
 }

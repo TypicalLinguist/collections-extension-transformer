@@ -1,5 +1,5 @@
 import {TransformerSignature} from "../../../source/main/main";
-import {arrayLiteralToNewArrayExpression} from "../../../source/main/transforms/arrayLiteralToNewArrayExpression";
+import {arrayLiteralToArray} from "../../../source/main/transforms/arrayLiteralToArray/main";
 import {ProjectMock} from "../../helpers/ProjectMock";
 import {Sandbox} from "../../helpers/Sandbox";
 import {createVirtualSourceFileWithContent} from "../../helpers/sourceFileMockHelper";
@@ -16,8 +16,9 @@ UnitUnderTest(`arrayLiteralToNewArrayExpression`, function(): void {
     beforeEach(function() {
         this.timeout(60000);
     });
+
     Given(`source files that contain an array literal`, async function(): Promise<any> {
-        const testingData = new TestingData(TestSuites.ArrayLiteralToNewArrayExpression);
+        const testingData = new TestingData(TestSuites.ArrayLiteralToArrayExpression);
         const projectMock = new ProjectMock();
         const sandbox = new Sandbox(testingData, projectMock);
         let expectedTypescriptFiles: Map<string, string>;
@@ -25,6 +26,8 @@ UnitUnderTest(`arrayLiteralToNewArrayExpression`, function(): void {
         let expectTypescriptDefinitionFiles: Map<string, string>;
 
         beforeEach(async function(): Promise<any> {
+            this.timeout(60000);
+
             let initialTypescriptFiles: Map<string, string>;
             let initialTypescriptDefinitionFiles: Map<string, string>;
             await sandbox.setup();
@@ -46,9 +49,11 @@ UnitUnderTest(`arrayLiteralToNewArrayExpression`, function(): void {
             let actualTypescriptDefinitionFiles: Map<string, string>;
 
             beforeEach(function(): void {
+                this.timeout(60000);
+
                 actualFiles = executeTransformOnEverySourceFile(
                     initialFiles,
-                    arrayLiteralToNewArrayExpression,
+                    arrayLiteralToArray,
                 );
 
                 actualTypescriptFiles = actualFiles
@@ -57,10 +62,12 @@ UnitUnderTest(`arrayLiteralToNewArrayExpression`, function(): void {
                 actualTypescriptDefinitionFiles = actualFiles
                     .filter((fileContent, filename) =>
                         filename.endsWith(`.${TypescriptDefinitionFileType.Instance.extension}`));
+
             });
 
             Then(`all the array literals should have been transformed to a new Array() expression`,
                 function(): void {
+                    this.timeout(60000);
                     expect(actualTypescriptFiles).files.to.equal(expectedTypescriptFiles);
                 },
             );

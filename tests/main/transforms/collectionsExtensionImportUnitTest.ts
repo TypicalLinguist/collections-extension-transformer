@@ -8,7 +8,7 @@ import {
     TypescriptFileType
 } from "../../helpers/TestingData";
 import {TestSuites} from "../../helpers/TestSuites";
-import {executeTransformOnEverySourceFile} from "./arrayLiteralToNewArrayExpressionUnitTest";
+import {executeTransformOnEverySourceFile} from "./arrayLiteralToArrayExpressionUnitTest";
 import {Map} from "@typical-linguist/collections-extension";
 
 UnitUnderTest(`collectionsExtensionImport`, function(): void {

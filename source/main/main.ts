@@ -2,10 +2,10 @@ import {mkdirSync} from "fs";
 import {removeSync} from "fs-extra-promise";
 import {CompilerOptions, SourceFile, ts} from "ts-simple-ast";
 import {PluginConfig} from "ttypescript/lib/PluginCreator";
-import {transformTypescript} from "./transformTypescript";
 import {compileTransformedTypeScript} from "./compileTransformedTypeScript";
-import {arrayLiteralToNewArrayExpression} from "./transforms/arrayLiteralToNewArrayExpression";
+import {arrayLiteralToArray} from "./transforms/arrayLiteralToArray/main";
 import {collectionsExtensionImport} from "./transforms/collectionsExtensionImport";
+import {transformTypescript} from "./transformTypescript";
 
 export default function(program: ts.Program, config?: PluginConfig)
     : (ctx: ts.TransformationContext) => (sourceFile: ts.SourceFile) => ts.SourceFile {
@@ -17,7 +17,7 @@ export default function(program: ts.Program, config?: PluginConfig)
 
     const transforms = [
         collectionsExtensionImport,
-        arrayLiteralToNewArrayExpression,
+        arrayLiteralToArray,
     ];
 
     main(projectDirectoryPath,
