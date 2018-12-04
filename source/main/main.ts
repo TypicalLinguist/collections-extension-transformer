@@ -1,11 +1,13 @@
-import {mkdirSync} from "fs";
+import {existsSync, mkdirSync} from "fs";
 import {removeSync} from "fs-extra-promise";
 import {CompilerOptions, SourceFile, ts} from "ts-simple-ast";
 import {PluginConfig} from "ttypescript/lib/PluginCreator";
 import {compileTransformedTypeScript} from "./compileTransformedTypeScript";
 import {arrayLiteralToArray} from "./transforms/arrayLiteralToArray/main";
-import {collectionsExtensionImport} from "./transforms/collectionsExtensionImport";
 import {transformTypescript} from "./transformTypescript";
+import {expectedArrayTransform} from "./transforms/arrayParameterToNativeArray";
+import {main as addImportIfRequired} from "./transforms/addImportIfRequired/addImportIfRequired";
+import {collectionsExtensionImport} from "./transforms/collectionsExtensionImport";
 
 export default function(program: ts.Program, config?: PluginConfig)
     : (ctx: ts.TransformationContext) => (sourceFile: ts.SourceFile) => ts.SourceFile {
@@ -18,6 +20,8 @@ export default function(program: ts.Program, config?: PluginConfig)
     const transforms = [
         collectionsExtensionImport,
         arrayLiteralToArray,
+        expectedArrayTransform,
+        addImportIfRequired,
     ];
 
     main(projectDirectoryPath,
@@ -40,7 +44,12 @@ export function main(projectDirectoryPath: string,
                      removeDir: (dir: string) => void,
                      tempDirectoryPath: string = `${projectDirectoryPath}/.typicalLinguist`): void {
 
-    mkdirSync(tempDirectoryPath);
+    if (existsSync(tempDirectoryPath)) {
+        removeDir(tempDirectoryPath);
+        mkdirSync(tempDirectoryPath);
+    } else {
+        mkdirSync(tempDirectoryPath);
+    }
 
     transformTypescript(compilerOptions, projectDirectoryPath, rootFilePaths, transforms, tempDirectoryPath, removeDir);
 

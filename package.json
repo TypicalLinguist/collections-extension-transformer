@@ -54,7 +54,7 @@
     "lodash.flatten": "^4.4.0",
     "mkdirp-sync": "0.0.3",
     "recursive-readdir": "^2.2.2",
-    "ts-simple-ast": "^18.0.0",
+    "ts-simple-ast": "^19.0.0",
     "ttypescript": "^1.4.2",
     "wtfnode": "^0.7.3"
   },

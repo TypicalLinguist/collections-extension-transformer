@@ -1,19 +1,15 @@
 import {ArrayTypeNode, ParenthesizedTypeNode} from "ts-simple-ast";
 
-export function arrayLiteralTypeToArrayType(arrayTypeNode: ArrayTypeNode): void {
-    arrayTypeNode.replaceWithText(buildTypeText(arrayTypeNode));
-}
-
-function buildTypeText(arrayTypeNode: ArrayTypeNode): string {
+export function buildArrayTypeNodeTypeText(arrayTypeNode: ArrayTypeNode): string {
     const elementTypeNode = arrayTypeNode.getElementTypeNode();
 
-    let text: string;
+    let typeArgumentsText: string;
 
     if (elementTypeNode instanceof ParenthesizedTypeNode) {
-        text = elementTypeNode.getTypeNode().getText();
+        typeArgumentsText = elementTypeNode.getTypeNode().getText();
     } else {
-        text = elementTypeNode.getText();
+        typeArgumentsText = elementTypeNode.getText();
     }
 
-    return `Array<${text}>`;
+    return `Array<${typeArgumentsText}>`;
 }

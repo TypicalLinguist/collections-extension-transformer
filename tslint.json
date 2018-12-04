@@ -10,6 +10,50 @@
       "call-signature",
       "property-declaration"
     ],
+    "member-ordering": [
+      true,
+      {
+        "order": [
+          "public-constructor",
+          "private-constructor",
+          "public-instance-method",
+          "protected-instance-method",
+          "private-instance-method",
+          "private-instance-field",
+          "public-static-field",
+          "public-instance-field",
+          "private-static-field"
+        ]
+      }
+    ],
+    "ban-types": {
+      "options": [
+        [
+          "Object",
+          "Avoid using the `Object` type. Did you mean `object`?"
+        ],
+        [
+          "Function",
+          "Avoid using the `Function` type. Prefer a specific function type, like `() => void`."
+        ],
+        [
+          "Boolean",
+          "Avoid using the `Boolean` type. Did you mean `boolean`?"
+        ],
+        [
+          "Number",
+          "Avoid using the `Number` type. Did you mean `number`?"
+        ],
+        [
+          "String",
+          "Avoid using the `String` type. Did you mean `string`?"
+        ]
+      ]
+    },
+    "cyclomatic-complexity": [
+      true,
+      10
+    ],
     "no-namespace": [
       true,
       "allow-declarations"

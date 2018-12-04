@@ -9,8 +9,8 @@ class Sandbox {
     public readonly parentDirectoryPath: string;
     public readonly realProcessExit = process.exit;
 
-    private testingData: TestingData;
-    private projectMock: ProjectMock;
+    private readonly testingData: TestingData;
+    private readonly projectMock: ProjectMock;
     private fakeExitListener: () => void;
     private exitListener: () => void;
     private oldProcessOn: any;

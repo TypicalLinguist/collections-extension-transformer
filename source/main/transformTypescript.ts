@@ -4,6 +4,7 @@ import {checkForErrors} from "./common";
 import {TransformerSignature} from "./main";
 import {copyFileSync} from "fs";
 import {dirname} from "path";
+import {main as monkeyPatchNodes} from "./helpers/monkeyPatchNodes";
 
 export function transformTypescript(compilerOptions: CompilerOptions,
                                     projectDirectoryPath: string,
@@ -18,6 +19,8 @@ export function transformTypescript(compilerOptions: CompilerOptions,
     const userSourceFiles = compiler.addExistingSourceFiles(`${temporaryDirectoryPath}/**/*.ts`);
 
     ifSyntacticalErrorsThrow(compiler, removeDir, temporaryDirectoryPath);
+
+    monkeyPatchNodes(compiler.getSourceFiles())
 
     executeTransforms(transforms, userSourceFiles);
 

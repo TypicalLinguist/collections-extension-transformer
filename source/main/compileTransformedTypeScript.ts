@@ -1,9 +1,5 @@
 import Project, {CompilerOptions, SourceFile} from "ts-simple-ast";
-import {copyFileSync, existsSync, mkdirSync} from "fs";
-import {dirname} from "path";
 import {checkForErrors} from "./common";
-import mkdirp = require("mkdirp");
-import recursiveReadDirSync = require("recursive-readdir-sync");
 
 export {compileTransformedTypeScript, createErrorMessageFromTemplate};
 
@@ -13,13 +9,13 @@ function compileTransformedTypeScript(tempDirectory: string,
 
     const compiler = configureCompiler(compilerOptions);
     const sourceFiles = compiler.addExistingSourceFiles(tempDirectory);
-    ifSyntacticalErrorsThrow(compiler);
+    ifSyntacticalErrorsThrow(compiler, tempDirectory, removeDir);
     emitJavascript(compiler, tempDirectory, compilerOptions, removeDir);
 
     return sourceFiles;
 }
 
-function ifSyntacticalErrorsThrow(compiler: Project): void {
+function ifSyntacticalErrorsThrow(compiler: Project, tempDirectory: string, removeDir: (dir: string) => void): void {
     const preEmitDiagnostics = compiler.getPreEmitDiagnostics();
 
     if (checkForErrors(preEmitDiagnostics)) {
@@ -34,8 +30,8 @@ function emitJavascript(compiler: Project,
                         removeDir: (dir: string) => void): void {
 
     compiler.emit();
-    moveOutputToOutDir(tempDirectory, compilerOptions.outDir);
-    removeDir(tempDirectory);
+    // moveOutputToOutDir(tempDirectory, compilerOptions.outDir);
+    // removeDir(tempDirectory);
 }
 
 function createErrorMessageFromTemplate(errorMessages: string): string {
@@ -49,30 +45,27 @@ function createErrorMessageFromTemplate(errorMessages: string): string {
 }
 
 function configureCompiler(compilerOptions: CompilerOptions): Project {
-    const projectCompilerOptions = JSON.parse(JSON.stringify(compilerOptions));
-    delete projectCompilerOptions.outDir;
-
     const compiler = new Project({
         addFilesFromTsConfig: false,
-        compilerOptions: projectCompilerOptions,
+        compilerOptions,
     });
     return compiler;
 }
 
 function moveOutputToOutDir(tempDirectory: string, outDir: string): void {
-    if (!existsSync(outDir)) {
-        mkdirSync(outDir);
-    }
-
-    const files = recursiveReadDirSync(tempDirectory);
-    const javascriptFiles = files.filter((file) => {
-        return file.endsWith(".js");
-    });
-
-    javascriptFiles.forEach((javascriptFile) => {
-        const relativePath = javascriptFile.split(`${tempDirectory}/`)[1];
-        const dest = `${outDir}/${relativePath}`;
-        mkdirp.sync(dirname(dest));
-        copyFileSync(`${javascriptFile}`, dest);
-    });
+    // if (!existsSync(outDir)) {
+    //     mkdirSync(outDir);
+    // }
+    //
+    // const files = recursiveReadDirSync(tempDirectory);
+    // const producedFiles = files.filter((file) => {
+    //     return file.endsWith(".js") || file.endsWith(".map.js") || file.endsWith("d.ts");
+    // });
+    //
+    // files.forEach((producedFile) => {
+    //     const relativePath = producedFile.split(`${tempDirectory}/`)[1];
+    //     const dest = `${outDir}/.typicalLinguist/${relativePath}`;
+    //     mkdirp.sync(dirname(dest));
+    //     copyFileSync(`${producedFile}`, dest);
+    // });
 }
